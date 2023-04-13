@@ -1,0 +1,30 @@
+
+class TonConnectError(Exception):
+    prefix = '[TON_CONNECT_SDK_ERROR]'
+    info = None
+
+    def __init__(self, message=None):
+        super(TonConnectError, self).__init__(f'{self.prefix}'
+                                              + (f': {self.info}' if self.info else '')
+                                              + (f' {message}' if message is not None else '')
+                                              )
+
+
+class WalletAlreadyConnectedError(TonConnectError):
+    info = 'Wallet connection called but wallet already connected. To avoid the error, disconnect the wallet before doing a new connection.'
+
+
+class WalletNotConnectedError(TonConnectError):
+    info = 'Send transaction or other protocol methods called while wallet is not connected.'
+
+
+class WalletNotSupportFeatureError(TonConnectError):
+    info = "Wallet doesn't support requested feature method."
+
+
+class FetchWalletsError(TonConnectError):
+    info = 'An error occurred while fetching the wallets list.'
+
+
+class UserRejectsError(TonConnectError):
+    info = 'User rejects the action in the wallet.'
