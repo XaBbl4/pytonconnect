@@ -195,7 +195,7 @@ class BridgeProvider(BaseProvider):
             
             if 'event' in wallet_message and wallet_message['event'] != 'connect':
                 connection['last_wallet_event_id'] = id
-                self._storage.set_item(IStorage.KEY_CONNECTION, json.dumps(connection))
+                await self._storage.set_item(IStorage.KEY_CONNECTION, json.dumps(connection))
 
         # self.listeners might be modified in the event handler
         listeners = self._listeners.copy()
