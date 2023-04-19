@@ -64,8 +64,9 @@ class TonConnect:
             self._status_change_error_subscriptions.append(errors_handler)
 
         def unsubscribe():
-            self._status_change_subscriptions.remove(callback)
-            if errors_handler is not None:
+            if callback in self._status_change_subscriptions:
+                self._status_change_subscriptions.remove(callback)
+            if errors_handler is not None and errors_handler in self._status_change_error_subscriptions:
                 self._status_change_error_subscriptions.remove(errors_handler)
 
         return unsubscribe
