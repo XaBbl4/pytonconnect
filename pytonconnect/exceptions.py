@@ -26,5 +26,17 @@ class FetchWalletsError(TonConnectError):
     info = 'An error occurred while fetching the wallets list.'
 
 
+class UnknownError(TonConnectError):
+    info = 'Unknown error.'
+
+
+class BadRequestError(TonConnectError):
+    info = 'Request to the wallet contains errors.'
+
+
+class UnknownAppError(TonConnectError):
+    info = 'App tries to send rpc request to the injected wallet while not connected.'
+
+
 class UserRejectsError(TonConnectError):
     info = 'User rejects the action in the wallet.'

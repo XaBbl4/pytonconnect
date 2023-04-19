@@ -1,7 +1,9 @@
 import asyncio
+from datetime import datetime
 from tonsdk.utils import Address
 
 from pytonconnect import TonConnect
+from pytonconnect.exceptions import UserRejectsError
 
 
 async def main():
@@ -15,7 +17,6 @@ async def main():
 
     def status_error(e):
         print('connect_error:', e)
-        unsubscribe()
 
     unsubscribe = connector.on_status_change(status_changed, status_error)
 
@@ -34,6 +35,33 @@ async def main():
             break
 
     if connector.connected:
+        print('Sending transaction...')
+
+        transaction = {
+            'valid_until': (int(datetime.now().timestamp()) + 900) * 1000,
+            'messages': [
+                {
+                    'address': '0:0000000000000000000000000000000000000000000000000000000000000000',
+                    'amount': '1',
+                },
+                {
+                    'address': '0:0000000000000000000000000000000000000000000000000000000000000000',
+                    'amount': '1',
+                }
+            ]
+        }
+
+        try:
+            result = await connector.send_transaction(transaction)
+            print('Transaction was sent successfully')
+            print(result)
+
+        except Exception as e:
+            if isinstance(e, UserRejectsError):
+                print('You rejected the transaction')
+            else:
+                print('Unknown error:', e)
+
         print('Waiting 2 minutes to disconnect...')
         asyncio.create_task(connector.disconnect())
         for i in range(120):

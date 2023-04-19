@@ -1,5 +1,5 @@
-import json
 from pytonconnect.exceptions import TonConnectError, WalletAlreadyConnectedError, WalletNotConnectedError, WalletNotSupportFeatureError
+from pytonconnect.parsers import SendTransactionParser
 from pytonconnect.storage import IStorage, DefaultStorage
 from pytonconnect.wallets_list_manager import WalletsListManager
 from pytonconnect.provider import BridgeProvider
@@ -129,10 +129,12 @@ class TonConnect:
             'messages': transaction.get('messages', [])
         }
 
-        response = await self._provider.send_request({'method': 'sendTransaction', 'params': [json.dumps(request)]})
+        response = await self._provider.send_request(SendTransactionParser.convert_to_rpc_request(request))
 
-        # TODO: return converted response
-        return response
+        if SendTransactionParser.is_error(response):
+            return SendTransactionParser.parse_and_throw_error(response)
+
+        return SendTransactionParser.convert_from_rpc_response(response)
 
 
     async def disconnect(self):
