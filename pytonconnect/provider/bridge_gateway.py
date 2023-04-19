@@ -40,25 +40,29 @@ class BridgeGateway:
         self._errors_listener = errors_listener
     
 
-    async def listen_event_source(self):
+    async def listen_event_source(self, resolve: asyncio.Future):
         try:
             async with self._event_source:
+                resolve.set_result(True)
                 async for event in self._event_source:
                     await self._messages_handler(event)
 
         except asyncio.exceptions.TimeoutError:
-            _LOGGER.error(f'Bridge error -> TimeoutError')
+            _LOGGER.exception(f'Bridge error -> TimeoutError')
         except asyncio.exceptions.CancelledError:
             pass
         except ClientConnectionError:
-            _LOGGER.error(f'Bridge error -> ClientConnectionError')
+            _LOGGER.exception(f'Bridge error -> ClientConnectionError')
         except Exception:
             _LOGGER.exception(f'Bridge error -> Unknown')
+        
+        if not resolve.done():
+            resolve.set_result(False)
 
 
-    async def register_session(self):
+    async def register_session(self) -> bool:
         if self._is_closed:
-            return
+            return False
 
         bridge_base = self._bridge_url.rstrip('/')
         bridge_url = f'{bridge_base}/{self.SSE_PATH}?client_id={self._session_id}'
@@ -71,8 +75,13 @@ class BridgeGateway:
         if self._handle_listen is not None:
             self._handle_listen.cancel()
 
+        loop = asyncio.get_running_loop()
+        resolve = loop.create_future()
+
         self._event_source = sse_client.EventSource(bridge_url, timeout=-1, on_error=self._errors_handler)
-        self._handle_listen = asyncio.create_task(self.listen_event_source())
+        self._handle_listen = asyncio.create_task(self.listen_event_source(resolve))
+
+        return await resolve
 
 
     async def send(self, request: str, receiver_public_key: str, topic: str, ttl: int = None):
