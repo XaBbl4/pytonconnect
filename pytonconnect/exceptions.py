@@ -40,3 +40,11 @@ class UnknownAppError(TonConnectError):
 
 class UserRejectsError(TonConnectError):
     info = 'User rejects the action in the wallet.'
+
+
+class ManifestNotFoundError(TonConnectError):
+    info = 'Manifest not found. Make sure you added `tonconnect-manifest.json` to the root of your app or passed correct manifest_url. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest'
+
+
+class ManifestContentError(TonConnectError):
+    info = 'Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest'

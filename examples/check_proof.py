@@ -1,18 +1,45 @@
 import asyncio
 from datetime import datetime
 from tonsdk.utils import Address
+from nacl.utils import random
 
 from pytonconnect import TonConnect
-from pytonconnect.exceptions import UserRejectsError
+from pytonconnect.parsers.connect_event import WalletInfo
+
+
+def generate_payload(ttl: int) -> str:
+    payload = bytearray(random(8))
+
+    ts = int(datetime.now().timestamp()) + ttl
+    payload.extend(ts.to_bytes(8, 'big'))
+
+    return payload.hex()
+
+
+def check_payload(payload: str, wallet_info: WalletInfo):
+    if len(payload) < 32:
+        print('Payload length error')
+        return False
+    if not wallet_info.check_proof(payload):
+        print('Check proof failed')
+        return False
+    ts = int(payload[16:32], 16)
+    if datetime.now().timestamp() > ts:
+        print('Request timeout error')
+        return False
+    return True
 
 
 async def main():
+    proof_payload = generate_payload(600)
+
     connector = TonConnect(manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json')
-    is_connected = await connector.restore_connection()
-    print('is_connected:', is_connected)
 
     def status_changed(wallet_info):
         print('wallet_info:', wallet_info)
+        if wallet_info is not None:
+            print('check_proof:', check_payload(proof_payload, wallet_info))
+
         unsubscribe()
 
     def status_error(e):
@@ -23,7 +50,9 @@ async def main():
     wallets_list = connector.get_wallets()
     print('wallets_list:', wallets_list)
     
-    generated_url = await connector.connect(wallets_list[0])
+    generated_url = await connector.connect(wallets_list[0], {
+        'ton_proof': proof_payload
+    })
     print('generated_url:', generated_url)
 
     print('Waiting 2 minutes to connect...')
@@ -35,33 +64,6 @@ async def main():
             break
 
     if connector.connected:
-        print('Sending transaction...')
-
-        transaction = {
-            'valid_until': (int(datetime.now().timestamp()) + 900) * 1000,
-            'messages': [
-                {
-                    'address': '0:0000000000000000000000000000000000000000000000000000000000000000',
-                    'amount': '1',
-                },
-                {
-                    'address': '0:0000000000000000000000000000000000000000000000000000000000000000',
-                    'amount': '1',
-                }
-            ]
-        }
-
-        try:
-            result = await connector.send_transaction(transaction)
-            print('Transaction was sent successfully')
-            print(result)
-
-        except Exception as e:
-            if isinstance(e, UserRejectsError):
-                print('You rejected the transaction')
-            else:
-                print('Unknown error:', e)
-
         print('Waiting 2 minutes to disconnect...')
         asyncio.create_task(connector.disconnect())
         for i in range(120):

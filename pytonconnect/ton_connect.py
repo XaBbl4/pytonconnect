@@ -1,5 +1,6 @@
-from pytonconnect.exceptions import TonConnectError, WalletAlreadyConnectedError, WalletNotConnectedError, WalletNotSupportFeatureError
-from pytonconnect.parsers import SendTransactionParser
+from pytonconnect.exceptions import ManifestContentError, ManifestNotFoundError, TonConnectError, WalletAlreadyConnectedError, WalletNotConnectedError, WalletNotSupportFeatureError
+from pytonconnect.parsers import SendTransactionParser, ConnectEventParser
+from pytonconnect.parsers.connect_event import WalletInfo
 from pytonconnect.storage import IStorage, DefaultStorage
 from pytonconnect.wallets_list_manager import WalletsListManager
 from pytonconnect.provider import BridgeProvider
@@ -14,7 +15,7 @@ class TonConnect:
     _manifest_url: str
     _storage: IStorage
 
-    _wallet: dict
+    _wallet: WalletInfo
 
     _status_change_subscriptions: list
     _status_change_error_subscriptions: list
@@ -27,7 +28,7 @@ class TonConnect:
     @property
     def account(self):
         """Current connected account or None if no account is connected."""
-        return self._wallet.get('account', None) if self.connected else None
+        return self._wallet.account if self.connected else None
 
     @property
     def wallet(self):
@@ -108,7 +109,7 @@ class TonConnect:
         return await self._provider.restore_connection()
 
 
-    async def send_transaction(self, transaction):
+    async def send_transaction(self, transaction: dict):
         """Asks connected wallet to sign and send the transaction.
         
         :param transaction: transaction to send.
@@ -118,14 +119,13 @@ class TonConnect:
         if not self.connected:
             raise WalletNotConnectedError()
 
-        features = self._wallet['device']['features']
         options = {'required_messages_number': len(transaction.get('messages', []))}
-        self._check_send_transaction_support(features, options)
+        self._check_send_transaction_support(self._wallet.device.features, options)
 
         request = {
             'valid_until': transaction.get('valid_until', None),
-            'from': transaction.get('from', self._wallet['account']['address']),
-            'network': transaction.get('network', self._wallet['account']['chain']),
+            'from': transaction.get('from', self._wallet.account.address),
+            'network': transaction.get('network', self._wallet.account.chain),
             'messages': transaction.get('messages', [])
         }
 
@@ -194,46 +194,20 @@ class TonConnect:
 
 
     def _on_wallet_connected(self, payload):
-        if 'items' not in payload:
-            raise TonConnectError('items was not found in payload')
-
-        ton_addr = None
-        ton_proof = None
-        for item in payload['items']:
-            if 'name' in item:
-                if item['name'] == 'ton_addr':
-                    ton_addr = item
-                elif item['name'] == 'ton_proof':
-                    ton_proof = item
-
-        if not ton_addr:
-            raise TonConnectError('ton_addr connection item was not found')
-
-        wallet = {
-            'device': payload['device'],
-            'account': {
-                'address': ton_addr['address'],
-                'chain': ton_addr['network'],
-                'wallet_state_init': ton_addr['walletStateInit'],
-                'public_key': ton_addr.get('publicKey', None)
-            }
-        }
-
-        if ton_proof is not None:
-            wallet['connect_items'] = {
-                'ton_proof': ton_proof
-            }
-
-        self._wallet = wallet
+        self._wallet = ConnectEventParser.parse_response(payload)
         for listener in self._status_change_subscriptions:
             listener(self._wallet)
 
 
     def _on_wallet_connect_error(self, payload):
         _LOGGER.debug('connect error %s', payload)
+        error = ConnectEventParser.parse_error(payload)
         for listener in self._status_change_error_subscriptions:
-            listener(payload)
-        # TODO: add check of errors
+            listener(error)
+        
+        if isinstance(error, ManifestNotFoundError) or isinstance(error, ManifestContentError):
+            _LOGGER.exception(error)
+            raise error
 
 
     def _on_wallet_disconnected(self):
@@ -249,10 +223,10 @@ class TonConnect:
             }
         ]
 
-        if request and 'ton_proof' in request:
+        if isinstance(request, dict) and 'ton_proof' in request:
             items.append({
                 'name': 'ton_proof',
-                'payload': request['tonProof']
+                'payload': request['ton_proof']
             })
 
         return {

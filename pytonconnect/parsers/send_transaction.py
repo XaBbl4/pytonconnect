@@ -38,7 +38,7 @@ class SendTransactionParser(RpcParser):
 
 
     def parse_and_throw_error(response: dict) -> None:
-        error_constructor: TonConnectError = TonConnectError
+        error_constructor: TonConnectError = UnknownError
 
         code = response.get('error', {}).get('code', None)
         if code is not None and code in SEND_TRANSACTION_ERRORS:
