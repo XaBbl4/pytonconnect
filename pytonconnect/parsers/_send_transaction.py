@@ -3,7 +3,7 @@ import json
 from enum import IntEnum
 
 from pytonconnect.exceptions import TonConnectError, UnknownError, BadRequestError, UnknownAppError, UserRejectsError
-from .rpc_parser import RpcParser
+from ._rpc_parser import RpcParser
 
 
 class SEND_TRANSACTION_ERROR_CODES(IntEnum):

@@ -7,9 +7,9 @@ from pytonconnect.exceptions import TonConnectError
 from pytonconnect.logger import _LOGGER
 from pytonconnect.storage import IStorage
 
-from .provider import BaseProvider
-from .bridge_gateway import BridgeGateway
-from .bridge_session import BridgeSession
+from ._provider import BaseProvider
+from ._bridge_gateway import BridgeGateway
+from ._bridge_session import BridgeSession
 
 
 class BridgeProvider(BaseProvider):

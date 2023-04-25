@@ -1,10 +1,9 @@
-from pytonconnect.exceptions import ManifestContentError, ManifestNotFoundError, TonConnectError, WalletAlreadyConnectedError, WalletNotConnectedError, WalletNotSupportFeatureError
-from pytonconnect.parsers import SendTransactionParser, ConnectEventParser
-from pytonconnect.parsers.connect_event import WalletInfo
-from pytonconnect.storage import IStorage, DefaultStorage
-from pytonconnect.wallets_list_manager import WalletsListManager
-from pytonconnect.provider import BridgeProvider
+from pytonconnect import WalletsListManager
+from pytonconnect.exceptions import ManifestContentError, ManifestNotFoundError, WalletAlreadyConnectedError, WalletNotConnectedError, WalletNotSupportFeatureError
 from pytonconnect.logger import _LOGGER
+from pytonconnect.parsers import SendTransactionParser, ConnectEventParser, WalletInfo
+from pytonconnect.provider import BridgeProvider
+from pytonconnect.storage import IStorage, DefaultStorage
 
 
 class TonConnect:

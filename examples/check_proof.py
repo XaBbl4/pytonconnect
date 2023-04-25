@@ -4,7 +4,7 @@ from tonsdk.utils import Address
 from nacl.utils import random
 
 from pytonconnect import TonConnect
-from pytonconnect.parsers.connect_event import WalletInfo
+from pytonconnect.parsers import WalletInfo
 
 
 def generate_payload(ttl: int) -> str:

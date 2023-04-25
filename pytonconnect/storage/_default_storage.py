@@ -1,4 +1,4 @@
-from .interface import IStorage
+from ._interface import IStorage
 
 
 class DefaultStorage(IStorage):
