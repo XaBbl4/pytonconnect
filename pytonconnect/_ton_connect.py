@@ -1,3 +1,5 @@
+import asyncio
+
 from pytonconnect.exceptions import ManifestContentError, ManifestNotFoundError, WalletAlreadyConnectedError, WalletNotConnectedError, WalletNotSupportFeatureError
 from pytonconnect.logger import _LOGGER
 from pytonconnect.parsers import SendTransactionParser, ConnectEventParser, WalletInfo
@@ -109,7 +111,7 @@ class TonConnect:
         return await self._provider.restore_connection()
 
 
-    async def send_transaction(self, transaction: dict):
+    async def send_transaction(self, transaction: dict) -> dict:
         """Asks connected wallet to sign and send the transaction.
         
         :param transaction: transaction to send.
@@ -154,6 +156,25 @@ class TonConnect:
     async def unpause_connection(self):
         """Unpause bridge HTTP connection if it is paused."""
         await self._provider.unpause()
+    
+    
+    def wait_for_connection(self):
+        wait_resolve = asyncio.get_running_loop().create_future()
+        if self.connected:
+            wait_resolve.set_result(self.wallet)
+            return wait_resolve
+
+        def status_changed(wallet_info):
+            wait_resolve.set_result(wallet_info)
+            unsubscribe()
+
+        def status_error(e):
+            wait_resolve.set_result(e)
+            unsubscribe()
+
+        unsubscribe = self.on_status_change(status_changed, status_error)
+
+        return wait_resolve
     
 
     def _check_send_transaction_support(self, features, options):
