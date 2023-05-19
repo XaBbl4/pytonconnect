@@ -4,6 +4,7 @@ from base64 import b64decode
 from enum import IntEnum
 from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
+from typing import List
 
 from pytonconnect.exceptions import ManifestContentError, ManifestNotFoundError, TonConnectError, UnknownError, BadRequestError, UnknownAppError, UserRejectsError
 from pytonconnect.logger import _LOGGER
@@ -40,7 +41,7 @@ class DeviceInfo():
     app_name: str # e.g. "Tonkeeper"
     app_version: str # e.g. "2.3.367"
     max_protocol_version: int
-    features: list[dict]
+    features: List[dict]
 
     def from_dict(device: dict):
         device_info = DeviceInfo()
