@@ -39,7 +39,8 @@ class TonConnect:
 
 
     def __init__(self, manifest_url: str, storage: IStorage=DefaultStorage(), wallets_list_source: str = None, wallets_list_cache_ttl: int = None):
-        self._wallets_list = WalletsListManager(wallets_list_source=wallets_list_source, cache_ttl=wallets_list_cache_ttl)
+        if wallets_list_source is not None or wallets_list_cache_ttl is not None:
+            self._wallets_list = WalletsListManager(wallets_list_source=wallets_list_source, cache_ttl=wallets_list_cache_ttl)
 
         self._provider = None
         self._manifest_url = manifest_url
@@ -50,9 +51,10 @@ class TonConnect:
         self._status_change_subscriptions = []
         self._status_change_error_subscriptions = []
 
-    def get_wallets(self):
+
+    def get_wallets(self = None):
         """Return available wallets list."""
-        return self._wallets_list.get_wallets()
+        return TonConnect._wallets_list.get_wallets() if self is None else self._wallets_list.get_wallets()
 
 
     def on_status_change(self, callback, errors_handler = None):
