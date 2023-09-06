@@ -122,7 +122,8 @@ class WalletsListManager:
         walletConfig = {
             'name': wallet['name'],
             'image': wallet['image'],
-            'about_url': wallet['about_url']
+            'about_url': wallet['about_url'],
+            'app_name': wallet.get('app_name')
         }
 
         for bridge in wallet['bridge']:
