@@ -58,7 +58,7 @@ FALLBACK_WALLETS_LIST = [
 
 class WalletsListManager:
 
-    _wallets_list_source = 'https://raw.githubusercontent.com/ton-blockchain/wallets-list/feature/at-wallet/wallets.json'
+    _wallets_list_source = 'https://raw.githubusercontent.com/ton-blockchain/wallets-list/main/wallets-v2.json'
     _cache_ttl: int
 
     _wallets_list_cache: dict
