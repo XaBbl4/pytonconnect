@@ -1,7 +1,7 @@
 import asyncio
 import json
-import requests
 
+from aiohttp import ClientSession
 from aiohttp.client_exceptions import ClientConnectionError
 from aiohttp_sse_client import client as sse_client
 
@@ -90,7 +90,9 @@ class BridgeGateway:
         bridge_url += f'&to={receiver_public_key}'
         bridge_url += f'&ttl={ttl if ttl else self.DEFAULT_TTL}'
         bridge_url += f'&topic={topic}'
-        requests.post(bridge_url, request)
+        async with ClientSession() as session:
+            async with session.post(bridge_url, data=request, headers={'Content-type': 'text/plain;charset=UTF-8'}):
+                pass
 
 
     def pause(self):

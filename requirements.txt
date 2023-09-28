@@ -1,3 +1,2 @@
 aiohttp-sse-client
 PyNaCl
-requests
