@@ -99,7 +99,7 @@ transaction = {
         {
             'address': '0:0000000000000000000000000000000000000000000000000000000000000000',
             'amount': '1',
-            # 'state_init': 'base64_YOUR_STATE_INIT' # just for instance. Replace with your transaction state_init or remove
+            # 'stateInit': 'base64_YOUR_STATE_INIT' # just for instance. Replace with your transaction state_init or remove
         },
         {
             'address': '0:0000000000000000000000000000000000000000000000000000000000000000',
