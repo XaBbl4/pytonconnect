@@ -38,7 +38,7 @@ async def main():
         print('Sending transaction...')
 
         transaction = {
-            'valid_until': (int(datetime.now().timestamp()) + 900) * 1000,
+            'valid_until': int(datetime.now().timestamp()) + 900,
             'messages': [
                 {
                     'address': '0:0000000000000000000000000000000000000000000000000000000000000000',

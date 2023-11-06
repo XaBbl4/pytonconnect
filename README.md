@@ -94,7 +94,7 @@ Then you have to show this link to user as QR-code, or use it as a deep_link. Yo
 
 ```python
 transaction = {
-    'valid_until': 1681223913000,
+    'valid_until': 1681223913,
     'messages': [
         {
             'address': '0:0000000000000000000000000000000000000000000000000000000000000000',
