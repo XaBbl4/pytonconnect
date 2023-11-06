@@ -236,6 +236,11 @@ class BridgeProvider(BaseProvider):
 
 
     def _generate_universal_url(self, universal_url: str, request: dict):
+        if 'tg://' in universal_url or 't.me/' in universal_url:
+            return self._generate_tg_universal_url(universal_url, request)
+        return self._generate_regular_universal_url(universal_url, request)
+
+    def _generate_regular_universal_url(self, universal_url: str, request: dict):
         version = 2
         session_id = self._session.session_crypto.session_id
         request_safe = quote_plus(json.dumps(request))
@@ -244,6 +249,21 @@ class BridgeProvider(BaseProvider):
         url = f'{universal_base}?v={version}&id={session_id}&r={request_safe}'
 
         return url
+
+    def _generate_tg_universal_url(self, universal_url: str, request: dict):
+        link = self._generate_regular_universal_url('about:blank', request)
+        link_params = link.split('?')[1]
+        start_attach = ('tonconnect-' + link_params
+                        .replace('.', '%2E')
+                        .replace('-', '%2D')
+                        .replace('_', '%5F')
+                        .replace('&', '-')
+                        .replace('=', '__')
+                        .replace('%', '--')
+                        .replace('+', '')
+                        )
+
+        return universal_url + '&startattach=' + start_attach
 
 
     def _close_gateways(self):

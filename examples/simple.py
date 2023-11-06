@@ -1,6 +1,6 @@
 import asyncio
 from datetime import datetime
-from tonsdk.utils import Address
+
 
 from pytonconnect import TonConnect
 from pytonconnect.exceptions import UserRejectsError
@@ -31,7 +31,7 @@ async def main():
         await asyncio.sleep(1)
         if connector.connected:
             if connector.account.address:
-                print('Connected with address:', Address(connector.account.address).to_string(True, True, True))
+                print('Connected with address:', connector.account.address)
             break
 
     if connector.connected:

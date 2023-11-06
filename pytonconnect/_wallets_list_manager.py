@@ -7,6 +7,20 @@ from pytonconnect.logger import _LOGGER
 
 FALLBACK_WALLETS_LIST = [
     {
+        "app_name": "telegram-wallet",
+        "name": "Wallet",
+        "image": "https://wallet.tg/images/logo-288.png",
+        "about_url": "https://wallet.tg/",
+        "universal_url": "https://t.me/wallet?attach=wallet",
+        "bridge": [
+            {
+                "type": "sse",
+                "url": "https://bridge.tonapi.io/bridge"
+            }
+        ],
+        "platforms": ["ios", "android", "macos", "windows", "linux"]
+    },
+    {
         "name": "Tonkeeper",
         "image": "https://tonkeeper.com/assets/tonconnect-icon.png",
         "tondns": "tonkeeper.ton",
@@ -44,7 +58,7 @@ FALLBACK_WALLETS_LIST = [
 
 class WalletsListManager:
 
-    _wallets_list_source = 'https://raw.githubusercontent.com/ton-blockchain/wallets-list/main/wallets.json'
+    _wallets_list_source = 'https://raw.githubusercontent.com/ton-blockchain/wallets-list/main/wallets-v2.json'
     _cache_ttl: int
 
     _wallets_list_cache: dict
@@ -108,7 +122,8 @@ class WalletsListManager:
         walletConfig = {
             'name': wallet['name'],
             'image': wallet['image'],
-            'about_url': wallet['about_url']
+            'about_url': wallet['about_url'],
+            'app_name': wallet.get('app_name')
         }
 
         for bridge in wallet['bridge']:
