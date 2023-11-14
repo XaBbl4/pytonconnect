@@ -64,15 +64,13 @@ class WalletsListManager:
     _wallets_list_cache: dict
     _wallets_list_cache_creation_timestamp: int
 
-
-    def __init__(self, wallets_list_source = None, cache_ttl = None):
+    def __init__(self, wallets_list_source=None, cache_ttl=None):
         if wallets_list_source:
             self._wallets_list_source = wallets_list_source
         self._cache_ttl = cache_ttl
 
         self._wallets_list_cache = None
         self._wallets_list_cache_creation_timestamp = None
-
 
     def get_wallets(self):
         if self._cache_ttl \
@@ -101,7 +99,6 @@ class WalletsListManager:
 
         return self._wallets_list_cache
 
-
     def _get_supported_wallet_config(self, wallet):
         if not isinstance(wallet, dict):
             _LOGGER.warning(f'Not supported wallet: is not a dict -> {wallet}')
@@ -112,7 +109,8 @@ class WalletsListManager:
         containsAbout = 'about_url' in wallet
 
         if not containsName or not containsImage or not containsAbout:
-            _LOGGER.warning(f'Not supported wallet: contains -> name({containsName}), image({containsImage}), about({containsAbout}), config -> {wallet}')
+            _LOGGER.warning(f'Not supported wallet: contains -> name({containsName}), image({containsImage}), '
+                            f'about({containsAbout}), config -> {wallet}')
             return None
 
         if 'bridge' not in wallet or not isinstance(wallet['bridge'], list) or not len(wallet['bridge']):
@@ -136,7 +134,7 @@ class WalletsListManager:
                 if 'universal_url' in wallet:
                     walletConfig['universal_url'] = wallet['universal_url']
                 break
-        
+
         if 'bridge_url' not in walletConfig:
             _LOGGER.warning(f'Not supported wallet: sse not found, config -> {wallet}')
             return None

@@ -6,7 +6,15 @@ from nacl.signing import VerifyKey
 from nacl.encoding import HexEncoder
 from typing import List
 
-from pytonconnect.exceptions import ManifestContentError, ManifestNotFoundError, TonConnectError, UnknownError, BadRequestError, UnknownAppError, UserRejectsError
+from pytonconnect.exceptions import (
+    BadRequestError,
+    ManifestContentError,
+    ManifestNotFoundError,
+    TonConnectError,
+    UnknownAppError,
+    UnknownError,
+    UserRejectsError,
+)
 from pytonconnect.logger import _LOGGER
 
 
@@ -37,9 +45,9 @@ class CHAIN(IntEnum):
 
 class DeviceInfo():
 
-    platform: str # 'iphone' | 'ipad' | 'android' | 'windows' | 'mac' | 'linux' | 'browser'
-    app_name: str # e.g. "Tonkeeper"
-    app_version: str # e.g. "2.3.367"
+    platform: str  # 'iphone' | 'ipad' | 'android' | 'windows' | 'mac' | 'linux' | 'browser'
+    app_name: str  # e.g. "Tonkeeper"
+    app_version: str  # e.g. "2.3.367"
     max_protocol_version: int
     features: List[dict]
 
@@ -62,7 +70,8 @@ class Account():
     chain: CHAIN
 
     # Base64 (not url safe) encoded wallet contract state_init.
-    # Can be used to get user's public key from the state_init if the wallet contract doesn't support corresponding method
+    # Can be used to get user's public key from the state_init
+    #   if the wallet contract doesn't support corresponding method
     wallet_state_init: str
 
     # Hex string without 0x prefix
@@ -119,19 +128,16 @@ class WalletInfo():
     # Response for ton_proof item request
     ton_proof: TonProof
 
-
     def __repr__(self):
         return f'<WalletInfo {self.account}>'
 
-
     def __init__(self):
         self.device = None
-        self.provider = 'http' # only http supported
+        self.provider = 'http'  # only http supported
         self.account = None
         self.ton_proof = None
 
-
-    def check_proof(self, src_payload: str=None) -> bool:
+    def check_proof(self, src_payload: str = None) -> bool:
         if self.ton_proof is None:
             return False
 
@@ -160,8 +166,8 @@ class WalletInfo():
             _LOGGER.debug('PROOF IS OK')
             return True
 
-        except Exception as e:
-            _LOGGER.exception(f'PROOF ERROR')
+        except Exception:
+            _LOGGER.exception('PROOF ERROR')
 
         return False
 
@@ -188,13 +194,12 @@ class ConnectEventParser():
 
         return wallet
 
-
     def parse_error(payload: dict) -> TonConnectError:
         error_constructor: TonConnectError = UnknownError
 
         code = payload.get('error', {}).get('code', None)
         if code is not None and code in CONNECT_EVENT_ERRORS:
             error_constructor = CONNECT_EVENT_ERRORS[code]
-        
+
         message = payload.get('error', {}).get('message', None)
         return error_constructor(message)

@@ -25,7 +25,6 @@ class BridgeProvider(BaseProvider):
     _pending_requests: dict
     _listeners: list
 
-
     def __init__(self, storage: IStorage, wallet: dict = None):
         self._storage = storage
         self._wallet = wallet
@@ -35,11 +34,10 @@ class BridgeProvider(BaseProvider):
         self._pending_requests = {}
         self._listeners = []
 
-
     async def connect(self, request: dict):
         self._close_gateways()
         session_crypto = SessionCrypto()
-        
+
         bridge_url = ''
         universal_url = BridgeProvider.STANDART_UNIVERSAL_URL
 
@@ -47,7 +45,7 @@ class BridgeProvider(BaseProvider):
             bridge_url = self._wallet['bridge_url']
             if 'universal_url' in self._wallet:
                 universal_url = self._wallet['universal_url']
-            
+
             self._gateway = BridgeGateway(
                 self._storage,
                 bridge_url,
@@ -57,12 +55,11 @@ class BridgeProvider(BaseProvider):
             )
 
             await self._gateway.register_session()
-        
+
         self._session.session_crypto = session_crypto
         self._session.bridge_url = bridge_url
 
         return self._generate_universal_url(universal_url, request)
-
 
     async def restore_connection(self):
         self._close_gateways()
@@ -75,7 +72,7 @@ class BridgeProvider(BaseProvider):
         if 'session' not in connection:
             return False
         self._session = BridgeSession(connection['session'])
-        
+
         self._gateway = BridgeGateway(
             self._storage,
             self._session.bridge_url,
@@ -88,9 +85,8 @@ class BridgeProvider(BaseProvider):
 
         for listener in self._listeners:
             listener(connection['connect_event'])
-        
-        return True
 
+        return True
 
     def close_connection(self):
         self._close_gateways()
@@ -98,7 +94,6 @@ class BridgeProvider(BaseProvider):
         self._gateway = None
         self._pending_requests = {}
         self._listeners = []
-
 
     async def disconnect(self):
         loop = asyncio.get_running_loop()
@@ -112,9 +107,9 @@ class BridgeProvider(BaseProvider):
         try:
             await asyncio.wait_for(self.send_request({'method': 'disconnect', 'params': []},
                                                      on_request_sent=on_request_sent),
-                                                     timeout=self.DISCONNECT_TIMEOUT)
+                                   timeout=self.DISCONNECT_TIMEOUT)
         except Exception:
-            _LOGGER.exception(f'Provider disconnect')
+            _LOGGER.exception('Provider disconnect')
         finally:
             if not resolve.done():
                 await self._remove_session()
@@ -122,18 +117,15 @@ class BridgeProvider(BaseProvider):
 
         return await resolve
 
-
     def pause(self):
         if self._gateway is not None:
             self._gateway.pause()
-
 
     async def unpause(self):
         if self._gateway is not None:
             await self._gateway.unpause()
 
-
-    async def send_request(self, request: dict, on_request_sent = None):
+    async def send_request(self, request: dict, on_request_sent=None):
         if not self._gateway or not self._session or not self._session.wallet_public_key:
             raise TonConnectError('Trying to send bridge request without session.')
 
@@ -161,10 +153,8 @@ class BridgeProvider(BaseProvider):
 
         return await resolve
 
-
     def listen(self, callback):
         self._listeners.append(callback)
-
 
     async def _gateway_listener(self, bridge_incoming_message):
         wallet_message = json.loads(
@@ -179,7 +169,7 @@ class BridgeProvider(BaseProvider):
                 if id not in self._pending_requests:
                     _LOGGER.debug(f"Response id {id} doesn't match any request's id")
                     return
-                
+
                 self._pending_requests[id].set_result(wallet_message)
                 del self._pending_requests[id]
             return
@@ -190,9 +180,10 @@ class BridgeProvider(BaseProvider):
             last_id = connection['last_wallet_event_id'] if 'last_wallet_event_id' in connection else 0
 
             if last_id and id <= last_id:
-                _LOGGER.error(f'Received event id (={id}) must be greater than stored last wallet event id (={last_id})')
+                _LOGGER.error(
+                    f'Received event id (={id}) must be greater than stored last wallet event id (={last_id})')
                 return
-            
+
             if 'event' in wallet_message and wallet_message['event'] != 'connect':
                 connection['last_wallet_event_id'] = id
                 await self._storage.set_item(IStorage.KEY_CONNECTION, json.dumps(connection))
@@ -205,14 +196,12 @@ class BridgeProvider(BaseProvider):
 
         elif wallet_message['event'] == 'disconnect':
             await self._remove_session()
-        
+
         for listener in listeners:
             listener(wallet_message)
 
-
-    async def _gateway_errors_listener(self, e = None):
+    async def _gateway_errors_listener(self, e=None):
         raise TonConnectError(f'Bridge error {json.dumps(e or {})}')
-
 
     async def _update_session(self, connect_event: dict, wallet_public_key: str):
         self._session.wallet_public_key = wallet_public_key
@@ -227,13 +216,11 @@ class BridgeProvider(BaseProvider):
 
         await self._storage.set_item(IStorage.KEY_CONNECTION, json.dumps(connection))
 
-
     async def _remove_session(self):
         if self._gateway is not None:
             self.close_connection()
             await self._storage.remove_item(IStorage.KEY_CONNECTION)
             await self._storage.remove_item(IStorage.KEY_LAST_EVENT_ID)
-
 
     def _generate_universal_url(self, universal_url: str, request: dict):
         if 'tg://' in universal_url or 't.me/' in universal_url:
@@ -264,7 +251,6 @@ class BridgeProvider(BaseProvider):
                         )
 
         return universal_url + '&startattach=' + start_attach
-
 
     def _close_gateways(self):
         if self._gateway:

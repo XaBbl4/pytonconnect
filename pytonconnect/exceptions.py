@@ -11,7 +11,8 @@ class TonConnectError(Exception):
 
 
 class WalletAlreadyConnectedError(TonConnectError):
-    info = 'Wallet connection called but wallet already connected. To avoid the error, disconnect the wallet before doing a new connection.'
+    info = ('Wallet connection called but wallet already connected. '
+            'To avoid the error, disconnect the wallet before doing a new connection.')
 
 
 class WalletNotConnectedError(TonConnectError):
@@ -43,8 +44,11 @@ class UserRejectsError(TonConnectError):
 
 
 class ManifestNotFoundError(TonConnectError):
-    info = 'Manifest not found. Make sure you added `tonconnect-manifest.json` to the root of your app or passed correct manifest_url. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest'
+    info = ('Manifest not found. Make sure you added `tonconnect-manifest.json` to the root of your app '
+            'or passed correct manifest_url. '
+            'See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest')
 
 
 class ManifestContentError(TonConnectError):
-    info = 'Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest'
+    info = ('Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. '
+            'See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest')

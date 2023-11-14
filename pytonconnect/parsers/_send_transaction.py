@@ -23,19 +23,17 @@ SEND_TRANSACTION_ERRORS = {
 
 
 class SendTransactionParser(RpcParser):
-    
+
     def convert_to_rpc_request(request: dict) -> dict:
         return {
             'method': 'sendTransaction',
             'params': [json.dumps(request)]
         }
 
-
     def convert_from_rpc_response(rpc_response: dict) -> dict:
         return {
             'boc': rpc_response['result']
         }
-
 
     def parse_and_throw_error(response: dict) -> None:
         error_constructor: TonConnectError = UnknownError
@@ -43,6 +41,6 @@ class SendTransactionParser(RpcParser):
         code = response.get('error', {}).get('code', None)
         if code is not None and code in SEND_TRANSACTION_ERRORS:
             error_constructor = SEND_TRANSACTION_ERRORS[code]
-        
+
         message = response.get('error', {}).get('message', None)
         raise error_constructor(message)

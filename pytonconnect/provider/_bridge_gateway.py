@@ -26,7 +26,6 @@ class BridgeGateway:
     _listener: any
     _errors_listener: any
 
-
     def __init__(self, storage: IStorage, bridge_url: str, session_id: str, listener, errors_listener):
 
         self._handle_listen = None
@@ -38,7 +37,6 @@ class BridgeGateway:
         self._session_id = session_id
         self._listener = listener
         self._errors_listener = errors_listener
-    
 
     async def listen_event_source(self, resolve: asyncio.Future):
         try:
@@ -48,17 +46,16 @@ class BridgeGateway:
                     await self._messages_handler(event)
 
         except asyncio.exceptions.TimeoutError:
-            _LOGGER.exception(f'Bridge error -> TimeoutError')
+            _LOGGER.exception('Bridge error -> TimeoutError')
         except asyncio.exceptions.CancelledError:
             pass
         except ClientConnectionError:
-            _LOGGER.exception(f'Bridge error -> ClientConnectionError')
+            _LOGGER.exception('Bridge error -> ClientConnectionError')
         except Exception:
-            _LOGGER.exception(f'Bridge error -> Unknown')
-        
+            _LOGGER.exception('Bridge error -> Unknown')
+
         if not resolve.done():
             resolve.set_result(False)
-
 
     async def register_session(self) -> bool:
         if self._is_closed:
@@ -66,7 +63,7 @@ class BridgeGateway:
 
         bridge_base = self._bridge_url.rstrip('/')
         bridge_url = f'{bridge_base}/{self.SSE_PATH}?client_id={self._session_id}'
-        
+
         last_event_id = await self._storage.get_item(IStorage.KEY_LAST_EVENT_ID)
         if last_event_id:
             bridge_url += f'&last_event_id={last_event_id}'
@@ -83,7 +80,6 @@ class BridgeGateway:
 
         return await resolve
 
-
     async def send(self, request: str, receiver_public_key: str, topic: str, ttl: int = None):
         bridge_base = self._bridge_url.rstrip('/')
         bridge_url = f'{bridge_base}/{self.POST_PATH}?client_id={self._session_id}'
@@ -94,21 +90,17 @@ class BridgeGateway:
             async with session.post(bridge_url, data=request, headers={'Content-type': 'text/plain;charset=UTF-8'}):
                 pass
 
-
     def pause(self):
         if self._handle_listen is not None:
             self._handle_listen.cancel()
             self._handle_listen = None
 
-
     async def unpause(self):
         await self.register_session()
-
 
     def close(self):
         self._is_closed = True
         self.pause()
-
 
     async def _messages_handler(self, event: sse_client.MessageEvent):
         await self._storage.set_item(IStorage.KEY_LAST_EVENT_ID, event.last_event_id)
@@ -116,11 +108,10 @@ class BridgeGateway:
         if not self._is_closed:
             try:
                 bridge_incoming_message = json.loads(event.data)
-            except:
+            except Exception:
                 raise TonConnectError(f'Bridge message parse failed, message {event.data}')
             else:
                 await self._listener(bridge_incoming_message)
-
 
     def _errors_handler(self):
         if not self._is_closed:
@@ -132,6 +123,6 @@ class BridgeGateway:
             elif self._event_source.ready_state == sse_client.READY_STATE_CONNECTING:
                 _LOGGER.error('Bridge error -> READY_STATE_CONNECTING')
                 return
-            
+
             if not self._errors_listener:
                 self._errors_listener()
