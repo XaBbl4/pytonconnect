@@ -1,0 +1,22 @@
+{
+    "editor.tabSize": 4,
+    "editor.insertSpaces": true,
+
+    "files.trimTrailingWhitespace": true,
+    "[markdown]": {
+        "files.trimTrailingWhitespace": false,
+    },
+
+    "files.insertFinalNewline": true,
+
+    "files.exclude": {
+        "**/.venv": true
+    },
+
+    "workbench.colorCustomizations": {
+        "titleBar.activeBackground": "#08c",
+        "titleBar.inactiveBackground": "#059",
+        "titleBar.activeForeground": "#ffd43b",
+        "titleBar.inactiveForeground": "#bbb"
+    }
+}
