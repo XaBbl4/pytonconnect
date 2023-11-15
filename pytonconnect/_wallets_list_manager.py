@@ -1,5 +1,6 @@
-import requests
 from datetime import datetime
+
+import httpx
 
 from pytonconnect.exceptions import FetchWalletsError
 from pytonconnect.logger import _LOGGER
@@ -81,7 +82,7 @@ class WalletsListManager:
         if not self._wallets_list_cache:
             wallets_list = None
             try:
-                wallets_list = requests.get(self._wallets_list_source).json()
+                wallets_list = httpx.get(self._wallets_list_source).json()
                 if not isinstance(wallets_list, list):
                     raise FetchWalletsError('Wrong wallets list format, wallets list must be an array.')
 

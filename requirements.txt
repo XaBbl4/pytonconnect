@@ -1,3 +1,3 @@
-aiohttp-sse-client
 PyNaCl
-requests
+httpx
+httpx-sse

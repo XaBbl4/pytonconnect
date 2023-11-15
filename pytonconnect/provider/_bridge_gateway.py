@@ -1,9 +1,8 @@
 import asyncio
 import json
 
-from aiohttp import ClientSession
-from aiohttp.client_exceptions import ClientConnectionError
-from aiohttp_sse_client import client as sse_client
+from httpx import AsyncClient as ClientSession
+from httpx_sse import ServerSentEvent, aconnect_sse
 
 from pytonconnect.exceptions import TonConnectError
 from pytonconnect.logger import _LOGGER
@@ -17,7 +16,6 @@ class BridgeGateway:
     DEFAULT_TTL = 300
 
     _handle_listen: asyncio.Task
-    _event_source: sse_client.EventSource
     _is_closed: bool
 
     _storage: IStorage
@@ -29,7 +27,6 @@ class BridgeGateway:
     def __init__(self, storage: IStorage, bridge_url: str, session_id: str, listener, errors_listener):
 
         self._handle_listen = None
-        self._event_source = None
         self._is_closed = False
 
         self._storage = storage
@@ -38,19 +35,19 @@ class BridgeGateway:
         self._listener = listener
         self._errors_listener = errors_listener
 
-    async def listen_event_source(self, resolve: asyncio.Future):
+    async def listen_event_source(self, resolve: asyncio.Future, url: str):
         try:
-            async with self._event_source:
-                resolve.set_result(True)
-                async for event in self._event_source:
-                    await self._messages_handler(event)
+            async with ClientSession() as client:
+                async with aconnect_sse(client, "GET", url) as event_source:
+                    resolve.set_result(True)
+                    async for event in event_source.aiter_sse():
+                        if event.event != 'heartbeat':
+                            await self._messages_handler(event)
 
         except asyncio.exceptions.TimeoutError:
             _LOGGER.exception('Bridge error -> TimeoutError')
         except asyncio.exceptions.CancelledError:
             pass
-        except ClientConnectionError:
-            _LOGGER.exception('Bridge error -> ClientConnectionError')
         except Exception:
             _LOGGER.exception('Bridge error -> Unknown')
 
@@ -75,8 +72,7 @@ class BridgeGateway:
         loop = asyncio.get_running_loop()
         resolve = loop.create_future()
 
-        self._event_source = sse_client.EventSource(bridge_url, timeout=-1, on_error=self._errors_handler)
-        self._handle_listen = asyncio.create_task(self.listen_event_source(resolve))
+        self._handle_listen = asyncio.create_task(self.listen_event_source(resolve, bridge_url))
 
         return await resolve
 
@@ -102,8 +98,8 @@ class BridgeGateway:
         self._is_closed = True
         self.pause()
 
-    async def _messages_handler(self, event: sse_client.MessageEvent):
-        await self._storage.set_item(IStorage.KEY_LAST_EVENT_ID, event.last_event_id)
+    async def _messages_handler(self, event: ServerSentEvent):
+        await self._storage.set_item(IStorage.KEY_LAST_EVENT_ID, event.id)
 
         if not self._is_closed:
             try:
@@ -112,17 +108,3 @@ class BridgeGateway:
                 raise TonConnectError(f'Bridge message parse failed, message {event.data}')
             else:
                 await self._listener(bridge_incoming_message)
-
-    def _errors_handler(self):
-        if not self._is_closed:
-            if self._event_source.ready_state == sse_client.READY_STATE_CLOSED:
-                _LOGGER.error('Bridge error -> READY_STATE_CLOSED')
-                # TODO: reconnect
-                return
-
-            elif self._event_source.ready_state == sse_client.READY_STATE_CONNECTING:
-                _LOGGER.error('Bridge error -> READY_STATE_CONNECTING')
-                return
-
-            if not self._errors_listener:
-                self._errors_listener()
