@@ -29,7 +29,7 @@ class BridgeGateway:
         self._handle_listen = None
         self._is_closed = False
 
-        self._storage = BridgeGatewayStorage(storage)
+        self._storage = BridgeGatewayStorage(storage, bridge_url)
         self._bridge_url = bridge_url
         self._session_id = session_id
         self._listener = listener

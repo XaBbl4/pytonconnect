@@ -1,4 +1,5 @@
 import json
+from hashlib import sha256
 
 from pytonconnect.storage import IStorage
 
@@ -45,19 +46,21 @@ class BridgeProviderStorage:
 class BridgeGatewayStorage:
 
     _storage: IStorage
+    __key_last_event_id: str
 
     @property
     def storage(self):
         return self._storage
 
-    def __init__(self, provider_storage: BridgeProviderStorage):
+    def __init__(self, provider_storage: BridgeProviderStorage, bridge_url: str):
         self._storage = provider_storage.storage
+        self.__key_last_event_id = f'{IStorage.KEY_LAST_EVENT_ID}:{sha256(bridge_url.encode()).hexdigest()[:6]}'
 
     async def setLastEventId(self, last_event_id: str):
-        await self._storage.set_item(IStorage.KEY_LAST_EVENT_ID, last_event_id)
+        await self._storage.set_item(self.__key_last_event_id, last_event_id)
 
     async def removeLastEventId(self):
-        await self._storage.remove_item(IStorage.KEY_LAST_EVENT_ID)
+        await self._storage.remove_item(self.__key_last_event_id)
 
     async def getLastEventId(self):
-        return await self._storage.get_item(IStorage.KEY_LAST_EVENT_ID)
+        return await self._storage.get_item(self.__key_last_event_id)
