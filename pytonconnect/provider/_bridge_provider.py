@@ -10,6 +10,7 @@ from pytonconnect.storage import IStorage
 from ._provider import BaseProvider
 from ._bridge_gateway import BridgeGateway
 from ._bridge_session import BridgeSession
+from ._bridge_storage import BridgeProviderStorage
 
 
 class BridgeProvider(BaseProvider):
@@ -17,18 +18,18 @@ class BridgeProvider(BaseProvider):
     DISCONNECT_TIMEOUT = 600
     STANDART_UNIVERSAL_URL = 'tc://'
 
-    _storage: IStorage
     _wallet: dict
 
+    _storage: BridgeProviderStorage
     _session: BridgeSession
     _gateway: BridgeGateway
     _pending_requests: dict
     _listeners: list
 
     def __init__(self, storage: IStorage, wallet: dict = None):
-        self._storage = storage
         self._wallet = wallet
 
+        self._storage = BridgeProviderStorage(storage)
         self._session = BridgeSession()
         self._gateway = None
         self._pending_requests = {}
@@ -64,11 +65,7 @@ class BridgeProvider(BaseProvider):
     async def restore_connection(self):
         self._close_gateways()
 
-        connection = await self._storage.get_item(IStorage.KEY_CONNECTION)
-        if not connection:
-            return False
-        connection = json.loads(connection)
-
+        connection = await self._storage.getConnection()
         if 'session' not in connection:
             return False
         self._session = BridgeSession(connection['session'])
@@ -129,12 +126,7 @@ class BridgeProvider(BaseProvider):
         if not self._gateway or not self._session or not self._session.wallet_public_key:
             raise TonConnectError('Trying to send bridge request without session.')
 
-        connection = json.loads(await self._storage.get_item(IStorage.KEY_CONNECTION, '{}'))
-        id = connection.get('next_rpc_request_id', '0')
-        connection['next_rpc_request_id'] = str(int(id)+1)
-        await self._storage.set_item(IStorage.KEY_CONNECTION, json.dumps(connection))
-
-        request['id'] = id
+        id = request['id'] = await self._storage.increaseNextRpcRequestId()
         _LOGGER.debug(f'Provider send http-bridge request: {request}')
 
         encoded_request = self._session.session_crypto.encrypt(
@@ -176,8 +168,7 @@ class BridgeProvider(BaseProvider):
 
         if 'id' in wallet_message:
             id = int(wallet_message['id'])
-            connection = json.loads(await self._storage.get_item(IStorage.KEY_CONNECTION, '{}'))
-            last_id = connection['last_wallet_event_id'] if 'last_wallet_event_id' in connection else 0
+            last_id = await self._storage.getLastWalletEventId()
 
             if last_id and id <= last_id:
                 _LOGGER.error(
@@ -185,8 +176,7 @@ class BridgeProvider(BaseProvider):
                 return
 
             if 'event' in wallet_message and wallet_message['event'] != 'connect':
-                connection['last_wallet_event_id'] = id
-                await self._storage.set_item(IStorage.KEY_CONNECTION, json.dumps(connection))
+                await self._storage.setLastWalletEventId(id)
 
         # self.listeners might be modified in the event handler
         listeners = self._listeners.copy()
@@ -207,20 +197,18 @@ class BridgeProvider(BaseProvider):
         self._session.wallet_public_key = wallet_public_key
 
         connection = {
-            'type': 'http',
             'session': self._session.get_dict(),
             'last_wallet_event_id': connect_event['id'] if 'id' in connect_event else None,
             'connect_event': connect_event,
             'next_rpc_request_id': 0
         }
 
-        await self._storage.set_item(IStorage.KEY_CONNECTION, json.dumps(connection))
+        await self._storage.setConnection(connection)
 
     async def _remove_session(self):
         if self._gateway is not None:
             self.close_connection()
-            await self._storage.remove_item(IStorage.KEY_CONNECTION)
-            await self._storage.remove_item(IStorage.KEY_LAST_EVENT_ID)
+            await self._storage.removeConnection()
 
     def _generate_universal_url(self, universal_url: str, request: dict):
         if 'tg://' in universal_url or 't.me/' in universal_url:

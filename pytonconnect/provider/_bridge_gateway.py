@@ -6,7 +6,7 @@ from httpx_sse import ServerSentEvent, aconnect_sse
 
 from pytonconnect.exceptions import TonConnectError
 from pytonconnect.logger import _LOGGER
-from pytonconnect.storage import IStorage
+from ._bridge_storage import BridgeProviderStorage, BridgeGatewayStorage
 
 
 class BridgeGateway:
@@ -18,18 +18,18 @@ class BridgeGateway:
     _handle_listen: asyncio.Task
     _is_closed: bool
 
-    _storage: IStorage
+    _storage: BridgeGatewayStorage
     _bridge_url: str
     _session_id: str
     _listener: any
     _errors_listener: any
 
-    def __init__(self, storage: IStorage, bridge_url: str, session_id: str, listener, errors_listener):
+    def __init__(self, storage: BridgeProviderStorage, bridge_url: str, session_id: str, listener, errors_listener):
 
         self._handle_listen = None
         self._is_closed = False
 
-        self._storage = storage
+        self._storage = BridgeGatewayStorage(storage)
         self._bridge_url = bridge_url
         self._session_id = session_id
         self._listener = listener
@@ -61,7 +61,7 @@ class BridgeGateway:
         bridge_base = self._bridge_url.rstrip('/')
         bridge_url = f'{bridge_base}/{self.SSE_PATH}?client_id={self._session_id}'
 
-        last_event_id = await self._storage.get_item(IStorage.KEY_LAST_EVENT_ID)
+        last_event_id = await self._storage.getLastEventId()
         if last_event_id:
             bridge_url += f'&last_event_id={last_event_id}'
         _LOGGER.debug(f'Bridge url -> {bridge_url}')
@@ -99,7 +99,7 @@ class BridgeGateway:
         self.pause()
 
     async def _messages_handler(self, event: ServerSentEvent):
-        await self._storage.set_item(IStorage.KEY_LAST_EVENT_ID, event.id)
+        await self._storage.setLastEventId(event.id)
 
         if not self._is_closed:
             try:
