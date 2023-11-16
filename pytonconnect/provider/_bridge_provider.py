@@ -39,26 +39,21 @@ class BridgeProvider(BaseProvider):
         self._close_gateways()
         session_crypto = SessionCrypto()
 
-        bridge_url = ''
-        universal_url = BridgeProvider.STANDART_UNIVERSAL_URL
-
-        if isinstance(self._wallet, dict):
-            bridge_url = self._wallet['bridge_url']
-            if 'universal_url' in self._wallet:
-                universal_url = self._wallet['universal_url']
-
-            self._gateway = BridgeGateway(
-                self._storage,
-                bridge_url,
-                session_crypto.session_id,
-                self._gateway_listener,
-                self._gateway_errors_listener
-            )
-
-            await self._gateway.register_session()
+        bridge_url = self._wallet['bridge_url'] if 'bridge_url' in self._wallet else ''
 
         self._session.session_crypto = session_crypto
         self._session.bridge_url = bridge_url
+
+        await self._storage.setConnection({
+            'session': self._session.get_dict(),
+            'connection_source': self._wallet,
+        })
+
+        await self._open_gateways()
+
+        universal_url = self._wallet['universal_url'] \
+            if 'universal_url' in self._wallet \
+            else BridgeProvider.STANDART_UNIVERSAL_URL
 
         return self._generate_universal_url(universal_url, request)
 
@@ -66,19 +61,15 @@ class BridgeProvider(BaseProvider):
         self._close_gateways()
 
         connection = await self._storage.getConnection()
+        if 'connection_source' in connection:
+            return False
         if 'session' not in connection:
             return False
         self._session = BridgeSession(connection['session'])
 
-        self._gateway = BridgeGateway(
-            self._storage,
-            self._session.bridge_url,
-            self._session.session_crypto.session_id,
-            self._gateway_listener,
-            self._gateway_errors_listener
-        )
-
-        await self._gateway.register_session()
+        if self._wallet is None:
+            self._wallet = {}
+        await self._open_gateways()
 
         for listener in self._listeners:
             listener(connection['connect_event'])
@@ -239,6 +230,18 @@ class BridgeProvider(BaseProvider):
                         )
 
         return universal_url + '&startattach=' + start_attach
+
+    async def _open_gateways(self):
+        if isinstance(self._wallet, dict):
+            self._gateway = BridgeGateway(
+                self._storage,
+                self._session.bridge_url,
+                self._session.session_crypto.session_id,
+                self._gateway_listener,
+                self._gateway_errors_listener
+            )
+
+            await self._gateway.register_session()
 
     def _close_gateways(self):
         if self._gateway:
