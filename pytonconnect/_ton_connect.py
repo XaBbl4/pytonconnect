@@ -1,4 +1,5 @@
 import asyncio
+from typing import Dict
 
 from pytonconnect.exceptions import (
     ManifestContentError,
@@ -22,6 +23,7 @@ class TonConnect:
     _provider: BridgeProvider
     _manifest_url: str
     _storage: IStorage
+    _api_tokens: Dict[str, str]
 
     _wallet: WalletInfo
 
@@ -48,7 +50,8 @@ class TonConnect:
         manifest_url: str,
         storage: IStorage = DefaultStorage(),
         wallets_list_source: str = None,
-        wallets_list_cache_ttl: int = None
+        wallets_list_cache_ttl: int = None,
+        api_tokens: Dict[str, str] = {},
     ):
         if wallets_list_source is not None or wallets_list_cache_ttl is not None:
             self._wallets_list = WalletsListManager(
@@ -58,6 +61,7 @@ class TonConnect:
         self._provider = None
         self._manifest_url = manifest_url
         self._storage = storage
+        self._api_tokens = api_tokens
 
         self._wallet = None
 
@@ -112,7 +116,7 @@ class TonConnect:
         :return: True if connection is restored
         """
         try:
-            self._provider = BridgeProvider(self._storage)
+            self._provider = BridgeProvider(self._storage, api_tokens=self._api_tokens)
         except Exception:
             await self._storage.remove_item(IStorage.KEY_CONNECTION)
             self._provider = None
@@ -209,7 +213,7 @@ class TonConnect:
                             "in the SendTransaction request. Request may be rejected by the wallet.")
 
     def _create_provider(self, wallet: dict) -> BridgeProvider:
-        provider = BridgeProvider(self._storage, wallet)
+        provider = BridgeProvider(self._storage, wallet, api_tokens=self._api_tokens)
         provider.listen(self._wallet_events_listener)
         return provider
 

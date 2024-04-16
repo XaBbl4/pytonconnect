@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import Dict
 
 from aiohttp import ClientSession
 from aiohttp.client_exceptions import ClientConnectionError
@@ -25,8 +26,9 @@ class BridgeGateway:
     _session_id: str
     _listener: any
     _errors_listener: any
+    _api_token: str
 
-    def __init__(self, storage: IStorage, bridge_url: str, session_id: str, listener, errors_listener):
+    def __init__(self, storage: IStorage, bridge_url: str, session_id: str, listener, errors_listener, api_tokens: Dict[str, str] = {}):
 
         self._handle_listen = None
         self._event_source = None
@@ -37,6 +39,12 @@ class BridgeGateway:
         self._session_id = session_id
         self._listener = listener
         self._errors_listener = errors_listener
+
+        self._api_token = None
+        for api_name, api_token in api_tokens.items():
+            if api_name in self._bridge_url:
+                self._api_token = api_token
+                break
 
     async def listen_event_source(self, resolve: asyncio.Future):
         try:
@@ -75,7 +83,17 @@ class BridgeGateway:
         loop = asyncio.get_running_loop()
         resolve = loop.create_future()
 
-        self._event_source = sse_client.EventSource(bridge_url, timeout=-1, on_error=self._errors_handler)
+        headers = {}
+        if self._api_token is not None:
+            headers['Authorization'] = f'Bearer {self._api_token}'
+
+        session = ClientSession(headers=headers)
+        self._event_source = sse_client.EventSource(
+            bridge_url,
+            session=session,
+            timeout=-1,
+            on_error=self._errors_handler,
+        )
         self._handle_listen = asyncio.create_task(self.listen_event_source(resolve))
 
         return await resolve
@@ -86,8 +104,13 @@ class BridgeGateway:
         bridge_url += f'&to={receiver_public_key}'
         bridge_url += f'&ttl={ttl if ttl else self.DEFAULT_TTL}'
         bridge_url += f'&topic={topic}'
+        headers = {'Content-type': 'text/plain;charset=UTF-8'}
+
+        if self._api_token is not None:
+            headers['Authorization'] = f'Bearer {self._api_token}'
+
         async with ClientSession() as session:
-            async with session.post(bridge_url, data=request, headers={'Content-type': 'text/plain;charset=UTF-8'}):
+            async with session.post(bridge_url, data=request, headers=headers):
                 pass
 
     def pause(self):

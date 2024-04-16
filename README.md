@@ -38,7 +38,10 @@ import asyncio
 from pytonconnect import TonConnect
 
 async def main():
-    connector = TonConnect(manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json')
+    connector = TonConnect(
+        manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json',
+        # api_tokens={'tonapi': 'key'},
+    )
     is_connected = await connector.restore_connection()
     print('is_connected:', is_connected)
 

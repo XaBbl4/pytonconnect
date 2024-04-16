@@ -1,5 +1,6 @@
 import asyncio
 import json
+from typing import Dict
 from urllib.parse import quote_plus
 
 from pytonconnect.crypto import SessionCrypto
@@ -24,8 +25,9 @@ class BridgeProvider(BaseProvider):
     _gateway: BridgeGateway
     _pending_requests: dict
     _listeners: list
+    _api_tokens: Dict[str, str]
 
-    def __init__(self, storage: IStorage, wallet: dict = None):
+    def __init__(self, storage: IStorage, wallet: dict = None, api_tokens: Dict[str, str] = {}):
         self._storage = storage
         self._wallet = wallet
 
@@ -33,6 +35,7 @@ class BridgeProvider(BaseProvider):
         self._gateway = None
         self._pending_requests = {}
         self._listeners = []
+        self._api_tokens = api_tokens
 
     async def connect(self, request: dict):
         self._close_gateways()
@@ -51,7 +54,8 @@ class BridgeProvider(BaseProvider):
                 bridge_url,
                 session_crypto.session_id,
                 self._gateway_listener,
-                self._gateway_errors_listener
+                self._gateway_errors_listener,
+                self._api_tokens,
             )
 
             await self._gateway.register_session()
@@ -78,7 +82,8 @@ class BridgeProvider(BaseProvider):
             self._session.bridge_url,
             self._session.session_crypto.session_id,
             self._gateway_listener,
-            self._gateway_errors_listener
+            self._gateway_errors_listener,
+            self._api_tokens,
         )
 
         await self._gateway.register_session()
@@ -101,7 +106,7 @@ class BridgeProvider(BaseProvider):
 
         def on_request_sent(request_future: asyncio.Future):
             asyncio.create_task(self._remove_session()) \
-                    .add_done_callback(lambda x: resolve.set_result(True) if not resolve.done() else None)
+                .add_done_callback(lambda x: resolve.set_result(True) if not resolve.done() else None)
             request_future.set_result(None)
 
         try:
