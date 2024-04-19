@@ -6,7 +6,8 @@ from httpx_sse import EventSource, ServerSentEvent, aconnect_sse
 
 from pytonconnect.exceptions import TonConnectError
 from pytonconnect.logger import _LOGGER
-from ._bridge_storage import BridgeProviderStorage, BridgeGatewayStorage
+
+from ._bridge_storage import BridgeGatewayStorage, BridgeProviderStorage
 
 
 class BridgeGateway:
@@ -89,8 +90,7 @@ class BridgeGateway:
         bridge_url += f'&ttl={ttl if ttl else self.DEFAULT_TTL}'
         bridge_url += f'&topic={topic}'
         async with ClientSession() as session:
-            async with session.post(bridge_url, data=request, headers={'Content-type': 'text/plain;charset=UTF-8'}):
-                pass
+            await session.post(bridge_url, data=request, headers={'Content-type': 'text/plain;charset=UTF-8'}):
 
     def pause(self):
         if self._handle_listen is not None:

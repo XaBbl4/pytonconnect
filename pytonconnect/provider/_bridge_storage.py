@@ -22,7 +22,7 @@ class BridgeProviderStorage:
         await self._storage.remove_item(IStorage.KEY_CONNECTION)
 
     async def getConnection(self) -> dict:
-        return json.loads(await self._storage.get_item(IStorage.KEY_CONNECTION, {}))
+        return json.loads(await self._storage.get_item(IStorage.KEY_CONNECTION, "{}"))
 
     async def setLastWalletEventId(self, id: int):
         connection = await self.getConnection()
