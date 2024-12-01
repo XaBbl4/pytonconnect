@@ -235,7 +235,7 @@ class BridgeProvider(BaseProvider):
     def _generate_regular_universal_url(self, universal_url: str, request: dict):
         version = 2
         session_id = self._session.session_crypto.session_id
-        request_safe = quote_plus(json.dumps(request))
+        request_safe = quote_plus(json.dumps(request, separators=(',', ':')))
 
         universal_base = universal_url.rstrip('/')
         url = f'{universal_base}?v={version}&id={session_id}&r={request_safe}'
