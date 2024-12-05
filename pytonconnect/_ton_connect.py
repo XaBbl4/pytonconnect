@@ -50,6 +50,13 @@ class TonConnect:
         """Current connected wallet or None if no account is connected."""
         return self._wallet
 
+    @property
+    def url(self):
+        """Current universal url for connected application"""
+        if self._provider is None:
+            return None
+        return self._provider._wallet.get('universal_url', None)
+
     def __init__(
         self,
         manifest_url: str,
