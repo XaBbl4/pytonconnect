@@ -127,7 +127,7 @@ class BridgeGateway:
         self.pause()
 
     async def _messages_handler(self, event: ServerSentEvent):
-        if event.event == self.HEARTBEAT_MSG:
+        if event.event == self.HEARTBEAT_MSG or event.data == '':
             return
 
         await self._storage.setLastEventId(event.id)
