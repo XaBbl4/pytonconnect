@@ -23,7 +23,7 @@ class BridgeProvider(BaseProvider):
     _storage: BridgeProviderStorage
     _session: BridgeSession
     _gateway: BridgeGateway
-    _pending_requests: dict
+    _pending_requests: dict[int, asyncio.Future]
     _listeners: list
     _api_tokens: dict[str, str]
 
@@ -127,12 +127,13 @@ class BridgeProvider(BaseProvider):
             self._session.wallet_public_key
         )
 
-        await self._gateway.send(encoded_request, self._session.wallet_public_key, request['method'])
-
         loop = asyncio.get_running_loop()
         resolve = loop.create_future()
 
         self._pending_requests[id] = resolve
+
+        await self._gateway.send(encoded_request, self._session.wallet_public_key, request['method'])
+
         if on_request_sent is not None:
             on_request_sent(resolve)
 
@@ -155,8 +156,10 @@ class BridgeProvider(BaseProvider):
                     _LOGGER.debug(f"Response id {id} doesn't match any request's id")
                     return
 
-                self._pending_requests[id].set_result(wallet_message)
-                del self._pending_requests[id]
+                if self._pending_requests[id] and not self._pending_requests[id].done():
+                    self._pending_requests[id].set_result(wallet_message)
+                    del self._pending_requests[id]
+
             return
 
         if 'id' in wallet_message:
