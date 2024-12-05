@@ -1,4 +1,5 @@
 import asyncio
+import typing
 
 from pytonconnect.exceptions import (
     ManifestContentError,
@@ -8,7 +9,12 @@ from pytonconnect.exceptions import (
     WalletNotSupportFeatureError,
 )
 from pytonconnect.logger import _LOGGER
-from pytonconnect.parsers import SendTransactionParser, ConnectEventParser, WalletInfo
+from pytonconnect.parsers import (
+    ConnectEventParser,
+    TransactionMessage,
+    SendTransactionParser,
+    WalletInfo,
+)
 from pytonconnect.provider import BridgeProvider
 from pytonconnect.storage import IStorage, DefaultStorage
 
@@ -133,15 +139,25 @@ class TonConnect:
         if not self.connected:
             raise WalletNotConnectedError()
 
-        options = {'required_messages_number': len(transaction.get('messages', []))}
+        messages: typing.Union[list[typing.Union[TransactionMessage, dict]],
+                               TransactionMessage, dict] = transaction.get('messages', [])
+        if not isinstance(messages, list):
+            messages = [messages,]
+
+        options = {'required_messages_number': len(messages)}
         self._check_send_transaction_support(self._wallet.device.features, options)
 
-        request = {
+        request: dict = {
             'valid_until': transaction.get('valid_until', None),
             'from': transaction.get('from', self._wallet.account.address),
             'network': transaction.get('network', self._wallet.account.chain),
-            'messages': transaction.get('messages', [])
+            'messages': [],
         }
+
+        for msg in messages:
+            if isinstance(msg, TransactionMessage):
+                msg = msg.to_dict()
+            request['messages'].append(msg)
 
         response = await self._provider.send_request(SendTransactionParser.convert_to_rpc_request(request))
 

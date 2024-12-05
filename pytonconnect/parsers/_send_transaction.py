@@ -1,6 +1,8 @@
 import json
 
+from dataclasses import dataclass
 from enum import IntEnum
+from typing import Optional
 
 from pytonconnect.exceptions import TonConnectError, UnknownError, BadRequestError, UnknownAppError, UserRejectsError
 from ._rpc_parser import RpcParser
@@ -20,6 +22,37 @@ SEND_TRANSACTION_ERRORS = {
     SEND_TRANSACTION_ERROR_CODES.UNKNOWN_APP_ERROR: UnknownAppError,
     SEND_TRANSACTION_ERROR_CODES.USER_REJECTS_ERROR: UserRejectsError,
 }
+
+
+@dataclass
+class TransactionMessage():
+    address: str
+    amount: int
+    send_mode: int = 3  # SendModeEnum.ignore_errors | SendModeEnum.pay_gas_separately
+    payload: Optional[str] = None
+    state_init: Optional[str] = None
+
+    def to_dict(cls):
+        d = {
+            'address': cls.address,
+            'amount': cls.amount,
+            'send_mode': cls.send_mode,
+        }
+        if cls.payload is not None:
+            d['payload'] = cls.payload
+        if cls.state_init is not None:
+            d['state_init'] = cls.state_init
+        return d
+
+    @staticmethod
+    def from_dict(d: dict):
+        return TransactionMessage(
+            address=d.get('address'),
+            amount=d.get('amount'),
+            send_mode=d.get('send_mode', 3),
+            payload=d.get('payload', None),
+            state_init=d.get('state_init', None),
+        )
 
 
 class SendTransactionParser(RpcParser):
