@@ -63,4 +63,7 @@ class BridgeGatewayStorage:
         await self._storage.remove_item(self.__key_last_event_id)
 
     async def getLastEventId(self):
-        return await self._storage.get_item(self.__key_last_event_id)
+        last_event_id = await self._storage.get_item(self.__key_last_event_id)
+        if last_event_id is None:
+            last_event_id = await self._storage.get_item(IStorage.KEY_LAST_EVENT_ID)
+        return last_event_id
