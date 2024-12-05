@@ -121,7 +121,7 @@ class TonConnect:
 
         return await self._provider.connect(self._create_connect_request(request))
 
-    async def restore_connection(self):
+    async def restore_connection(self, auto_listen=True):
         """Try to restore existing session and reconnect to the corresponding wallet.
         Call it immediately when your app is loaded.
 
@@ -137,7 +137,7 @@ class TonConnect:
             return False
 
         self._provider.listen(self._wallet_events_listener)
-        return await self._provider.restore_connection()
+        return await self._provider.restore_connection(auto_listen)
 
     async def send_transaction(self, transaction: dict) -> dict:
         """Asks connected wallet to sign and send the transaction.

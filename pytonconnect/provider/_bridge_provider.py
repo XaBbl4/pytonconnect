@@ -59,7 +59,7 @@ class BridgeProvider(BaseProvider):
 
         return self._generate_universal_url(universal_url, request)
 
-    async def restore_connection(self):
+    async def restore_connection(self, auto_listen=True):
         self._close_gateways()
 
         connection = await self._storage.getConnection()
@@ -71,7 +71,7 @@ class BridgeProvider(BaseProvider):
 
         if self._wallet is None:
             self._wallet = {}
-        await self._open_gateways()
+        await self._open_gateways(auto_listen)
 
         for listener in self._listeners:
             listener(connection['connect_event'])
@@ -233,7 +233,7 @@ class BridgeProvider(BaseProvider):
 
         return universal_url + '&startattach=' + start_attach
 
-    async def _open_gateways(self):
+    async def _open_gateways(self, auto_listen=True):
         if isinstance(self._wallet, dict):
             self._gateway = BridgeGateway(
                 self._storage,
@@ -244,7 +244,8 @@ class BridgeProvider(BaseProvider):
                 api_tokens=self._api_tokens,
             )
 
-            await self._gateway.register_session()
+            if auto_listen:
+                await self._gateway.register_session()
 
     def _close_gateways(self):
         if self._gateway:
