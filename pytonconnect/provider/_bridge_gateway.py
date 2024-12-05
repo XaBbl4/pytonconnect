@@ -17,6 +17,7 @@ class BridgeGateway:
     POST_PATH = 'message'
     HEARTBEAT_MSG = 'heartbeat'
     DEFAULT_TTL = 300
+    DEFAULT_TIMEOUT = 10 # default request timeout
 
     _handle_listen: asyncio.Task
     _event_source: EventSource
@@ -27,8 +28,9 @@ class BridgeGateway:
     _session_id: str
     _listener: any
     _errors_listener: any
+    _api_token: str
 
-    def __init__(self, storage: BridgeProviderStorage, bridge_url: str, session_id: str, listener, errors_listener):
+    def __init__(self, storage: BridgeProviderStorage, bridge_url: str, session_id: str, listener, errors_listener, api_tokens: dict[str, str] = {}):
 
         self._handle_listen = None
         self._event_source = None
@@ -40,10 +42,21 @@ class BridgeGateway:
         self._listener = listener
         self._errors_listener = errors_listener
 
-    async def listen_event_source(self, resolve: asyncio.Future, url: str, timeout):
+        self._api_token = None
+        for api_name, api_token in api_tokens.items():
+            if api_name in self._bridge_url:
+                self._api_token = api_token
+                break
+
+    async def listen_event_source(self, resolve: asyncio.Future, url: str, timeout=None):
         try:
             async with ClientSession() as client:
-                async with aconnect_sse(client, "GET", url, timeout=timeout) as self._event_source:
+                headers = {}
+                if self._api_token is not None:
+                    headers['Authorization'] = f'Bearer {self._api_token}'
+                async with aconnect_sse(client, "GET", url, headers=headers, timeout=timeout) as self._event_source:
+                    if resolve.done() or resolve.cancelled():
+                        return
                     resolve.set_result(True)
                     async for event in self._event_source.aiter_sse():
                         await self._messages_handler(event)
@@ -68,7 +81,7 @@ class BridgeGateway:
         if not resolve.done():
             resolve.set_result(False)
 
-    async def register_session(self, timeout=5) -> bool:
+    async def register_session(self, timeout=DEFAULT_TIMEOUT) -> bool:
         if self._is_closed:
             return False
 
@@ -93,8 +106,13 @@ class BridgeGateway:
         bridge_url += f'&to={receiver_public_key}'
         bridge_url += f'&ttl={ttl if ttl else self.DEFAULT_TTL}'
         bridge_url += f'&topic={topic}'
+
+        headers = {'Content-type': 'text/plain;charset=UTF-8'}
+        if self._api_token is not None:
+            headers['Authorization'] = f'Bearer {self._api_token}'
+
         async with ClientSession() as session:
-            await session.post(bridge_url, data=request, headers={'Content-type': 'text/plain;charset=UTF-8'})
+            await session.post(bridge_url, data=request, headers=headers)
 
     def pause(self):
         if self._handle_listen is not None:

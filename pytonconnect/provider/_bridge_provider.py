@@ -25,8 +25,9 @@ class BridgeProvider(BaseProvider):
     _gateway: BridgeGateway
     _pending_requests: dict
     _listeners: list
+    _api_tokens: dict[str, str]
 
-    def __init__(self, storage: IStorage, wallet: dict = None):
+    def __init__(self, storage: IStorage, wallet: dict = None, api_tokens: dict[str, str] = {}):
         self._wallet = wallet
 
         self._storage = BridgeProviderStorage(storage)
@@ -34,6 +35,7 @@ class BridgeProvider(BaseProvider):
         self._gateway = None
         self._pending_requests = {}
         self._listeners = []
+        self._api_tokens = api_tokens
 
     async def connect(self, request: dict):
         self._close_gateways()
@@ -238,7 +240,8 @@ class BridgeProvider(BaseProvider):
                 self._session.bridge_url,
                 self._session.session_crypto.session_id,
                 self._gateway_listener,
-                self._gateway_errors_listener
+                self._gateway_errors_listener,
+                api_tokens=self._api_tokens,
             )
 
             await self._gateway.register_session()
