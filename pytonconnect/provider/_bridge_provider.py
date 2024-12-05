@@ -214,16 +214,16 @@ class BridgeProvider(BaseProvider):
     def _generate_regular_universal_url(self, universal_url: str, request: dict):
         version = 2
         session_id = self._session.session_crypto.session_id
-        request_safe = quote_plus(json.dumps(request, separators=(',', ':')))
+        request_safe = quote_plus(json.dumps(request, separators=(',', ':'))).replace('+', '')
 
         universal_base = universal_url.rstrip('/')
-        url = f'{universal_base}?v={version}&id={session_id}&r={request_safe}'
+        url = f'{universal_base}?v={version}&id={session_id}&r={request_safe}&ret=back'
 
         return url
 
     def _generate_tg_universal_url(self, universal_url: str, request: dict):
         link = self._generate_regular_universal_url('about:blank', request)
-        link_params = link.split('?')[1]
+        link_params = link.split('?')[1] + '&ret=back'
         start_attach = ('tonconnect-' + link_params
                         .replace('.', '%2E')
                         .replace('-', '%2D')
