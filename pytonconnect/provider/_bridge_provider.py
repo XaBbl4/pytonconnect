@@ -186,7 +186,7 @@ class BridgeProvider(BaseProvider):
         for listener in listeners:
             listener(wallet_message)
 
-    async def _gateway_errors_listener(self, e=None):
+    def _gateway_errors_listener(self, e=None):
         raise TonConnectError(f'Bridge error {json.dumps(e or {})}')
 
     async def _update_session(self, connect_event: dict, wallet_public_key: str):

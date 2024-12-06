@@ -73,9 +73,9 @@ class BridgeGateway:
 
         except Exception:
             _LOGGER.exception('Bridge error -> Exception')
-            if self._event_source.response.is_closed:
-                await self.register_session()
-            elif not self._errors_listener:
+            if self._event_source and self._event_source.response.is_closed:
+                asyncio.create_task(self.register_session())
+            elif self._errors_listener:
                 self._errors_listener()
 
         if not resolve.done():
@@ -92,6 +92,9 @@ class BridgeGateway:
         if last_event_id:
             bridge_url += f'&last_event_id={last_event_id}'
         _LOGGER.debug(f'Bridge url -> {bridge_url}')
+
+        if self._handle_listen is not None and not self._handle_listen.done():
+            self._handle_listen.cancel()
 
         loop = asyncio.get_running_loop()
         resolve = loop.create_future()
