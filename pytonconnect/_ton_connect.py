@@ -49,7 +49,7 @@ class TonConnect:
         """Current universal url for connected application"""
         if self._provider is None:
             return None
-        return self._provider._wallet.get('universal_url', None)
+        return self._provider._wallet.get('universal_url')
 
     def __init__(
         self,
@@ -67,7 +67,7 @@ class TonConnect:
         self._provider = None
         self._manifest_url = manifest_url
         self._storage = storage or DefaultStorage()
-        self._api_tokens = api_tokens
+        self._api_tokens = api_tokens or {}
 
         self._wallet = None
 
@@ -79,7 +79,7 @@ class TonConnect:
         return TonConnect._wallets_list.get_wallets() if self is None else self._wallets_list.get_wallets()
 
     def on_status_change(self, callback, errors_handler=None):
-        """Allow to subscribe to connection status changes and handle connection errors.
+        """Allows to subscribe to connection status changes and handle connection errors.
 
         :param callback: will be called after connections status changes with actual wallet or None
         :param errors_handler: will be called with some instance of TonConnectError when connect error is received
@@ -98,7 +98,7 @@ class TonConnect:
         return unsubscribe
 
     async def connect(self, wallet, request=None):
-        """Generate universal link for an external wallet and subscribes to the wallet's bridge,
+        """Generates universal link for an external wallet and subscribes to the wallet's bridge,
         or sends connect request to the injected wallet.
 
         :param wallet: wallet's bridge url and universal link for an external wallet.
@@ -134,7 +134,7 @@ class TonConnect:
         return await self._provider.restore_connection(auto_listen)
 
     async def send_transaction(self, transaction: dict) -> dict:
-        """Ask connected wallet to sign and send the transaction.
+        """Asks connected wallet to sign and send the transaction.
 
         :param transaction: transaction to send.
         :return: signed transaction boc that allows you to find the transaction in the blockchain.
@@ -143,25 +143,22 @@ class TonConnect:
         if not self.connected:
             raise WalletNotConnectedError()
 
-        messages: typing.Union[list[typing.Union[TransactionMessage, dict]],
-                               TransactionMessage, dict] = transaction.get('messages', [])
+        messages: typing.Union[list[typing.Union[TransactionMessage, dict]]] = transaction.get('messages', [])
         if not isinstance(messages, list):
             messages = [messages]
 
         options = {'required_messages_number': len(messages)}
         self._check_send_transaction_support(self._wallet.device.features, options)
 
-        request: dict = {
-            'valid_until': transaction.get('valid_until', None),
+        messages = [msg.to_dict() if isinstance(msg, TransactionMessage) else msg
+                    for msg in messages]
+
+        request = {
+            'valid_until': transaction.get('valid_until'),
             'from': transaction.get('from', self._wallet.account.address),
             'network': transaction.get('network', self._wallet.account.chain),
-            'messages': [],
+            'messages': messages,
         }
-
-        for msg in messages:
-            if isinstance(msg, TransactionMessage):
-                msg = msg.to_dict()
-            request['messages'].append(msg)
 
         response = await self._provider.send_request(SendTransactionParser.convert_to_rpc_request(request))
 
@@ -210,7 +207,7 @@ class TonConnect:
         supports_deprecated_send_transaction_feature = 'SendTransaction' in features
         send_transaction_feature = None
         for feature in features:
-            if isinstance(feature, dict) and feature.get('name', None) == 'SendTransaction':
+            if isinstance(feature, dict) and feature.get('name') == 'SendTransaction':
                 send_transaction_feature = feature
                 break
 
@@ -218,7 +215,7 @@ class TonConnect:
             raise WalletNotSupportFeatureError("Wallet doesn't support SendTransaction feature.")
 
         if send_transaction_feature:
-            max_messages = send_transaction_feature.get('maxMessages', None)
+            max_messages = send_transaction_feature.get('maxMessages')
             required_messages = options.get('required_messages_number')
             if max_messages and max_messages < required_messages:
                 raise WalletNotSupportFeatureError(
@@ -254,7 +251,7 @@ class TonConnect:
         for listener in self._status_change_error_subscriptions:
             listener(error)
 
-        if isinstance(error, ManifestNotFoundError) or isinstance(error, ManifestContentError):
+        if isinstance(error, (ManifestNotFoundError, ManifestContentError)):
             _LOGGER.exception(error)
             raise error
 

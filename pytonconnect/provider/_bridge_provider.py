@@ -35,7 +35,7 @@ class BridgeProvider(BaseProvider):
         self._gateway = None
         self._pending_requests = {}
         self._listeners = []
-        self._api_tokens = api_tokens
+        self._api_tokens = api_tokens or {}
 
     async def connect(self, request: dict):
         self._close_gateways()
@@ -144,8 +144,8 @@ class BridgeProvider(BaseProvider):
 
     async def _gateway_listener(self, bridge_incoming_message):
         wallet_message = json.loads(
-            self._session.session_crypto.decrypt(bridge_incoming_message['message'], bridge_incoming_message['from']),
-        )
+            self._session.session_crypto.decrypt(bridge_incoming_message['message'],
+                                                 bridge_incoming_message['from']))
 
         _LOGGER.debug(f'Wallet message received: {wallet_message}')
 
@@ -164,21 +164,23 @@ class BridgeProvider(BaseProvider):
                     del self._pending_requests[event_id]
                 elif self._pending_requests[event_id]:
                     _LOGGER.debug(
-                        f'Future {event_id} error -> state {self._pending_requests[event_id]._state}, done {self._pending_requests[event_id].done()}, cancelled {self._pending_requests[event_id].cancelled()}')
+                        f'Future {event_id} error -> state {self._pending_requests[event_id]._state},'
+                        f' done {self._pending_requests[event_id].done()},'
+                        f' cancelled {self._pending_requests[event_id].cancelled()}')
 
             return
 
         if 'id' in wallet_message:
-            event_id = int(wallet_message['id'])
+            msg_id = int(wallet_message['id'])
             last_id = await self._storage.getLastWalletEventId()
 
-            if last_id and event_id <= last_id:
+            if last_id and msg_id <= last_id:
                 _LOGGER.error(
-                    f'Received event id (={event_id}) must be greater than stored last wallet event id (={last_id})')
+                    f'Received event id (={msg_id}) must be greater than stored last wallet event id (={last_id})')
                 return
 
             if 'event' in wallet_message and wallet_message['event'] != 'connect':
-                await self._storage.setLastWalletEventId(event_id)
+                await self._storage.setLastWalletEventId(msg_id)
 
         # self.listeners might be modified in the event handler
         listeners = self._listeners.copy()
@@ -213,32 +215,37 @@ class BridgeProvider(BaseProvider):
             await self._storage.removeConnection()
 
     def _generate_universal_url(self, universal_url: str, request: dict):
-        if 'tg://' in universal_url or 't.me/' in universal_url:
-            return self._generate_tg_universal_url(universal_url, request)
-        return self._generate_regular_universal_url(universal_url, request)
+        is_ret_back = 'return_back' in request
 
-    def _generate_regular_universal_url(self, universal_url: str, request: dict):
+        if 'tg://' in universal_url or 't.me/' in universal_url:
+            return self._generate_tg_universal_url(universal_url, request, is_ret_back)
+        return self._generate_regular_universal_url(universal_url, request, is_ret_back)
+
+    def _generate_regular_universal_url(self, universal_url: str, request: dict, is_ret_back: bool = False):
         version = 2
         session_id = self._session.session_crypto.session_id
         request_safe = quote_plus(json.dumps(request, separators=(',', ':'))).replace('+', '')
 
         universal_base = universal_url.rstrip('/')
-        url = f'{universal_base}?v={version}&id={session_id}&r={request_safe}&ret=back'
+        url = f'{universal_base}?v={version}&id={session_id}&r={request_safe}' + ('&ret=back' if is_ret_back else '')
 
         return url
 
-    def _generate_tg_universal_url(self, universal_url: str, request: dict):
-        link = self._generate_regular_universal_url('about:blank', request)
-        link_params = link.split('?')[1] + '&ret=back'
-        start_attach = ('tonconnect-' + link_params
-                        .replace('.', '%2E')
-                        .replace('-', '%2D')
-                        .replace('_', '%5F')
-                        .replace('&', '-')
-                        .replace('=', '__')
-                        .replace('%', '--')
-                        .replace('+', '')
-                        )
+    def _generate_tg_universal_url(self, universal_url: str, request: dict, is_ret_back: bool = False):
+        link = self._generate_regular_universal_url('about:blank', request, is_ret_back)
+        link_params = link.split('?')[1]
+        replaces = (
+            ('.', '%2E'),
+            ('-', '%2D'),
+            ('_', '%5F'),
+            ('&', '-'),
+            ('=', '__'),
+            ('%', '--'),
+            ('+', ''),
+        )
+        for old, new in replaces:
+            link_params = link_params.replace(old, new)
+        start_attach = 'tonconnect-' + link_params
 
         return universal_url + '&startattach=' + start_attach
 
