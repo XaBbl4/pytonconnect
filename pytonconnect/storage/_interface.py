@@ -8,7 +8,7 @@ class IStorage(metaclass=ABCMeta):
 
     @abstractmethod
     async def set_item(self, key: str, value: str):
-        """Saves the `value` to the storage. Value can be accessed later by the `key`.
+        """Save the `value` to the storage. Value can be accessed later by the `key`.
 
         :param key: key to access to the value later
         :param value: value to save
@@ -17,7 +17,7 @@ class IStorage(metaclass=ABCMeta):
 
     @abstractmethod
     async def get_item(self, key: str, default_value: str = None):
-        """Reads the `value` from the storage.
+        """Read the `value` from the storage.
 
         :param key: key to access the value
         :param default_value: default value if key not found in storage
@@ -26,7 +26,7 @@ class IStorage(metaclass=ABCMeta):
 
     @abstractmethod
     async def remove_item(self, key: str):
-        """Removes the `value` from the storage.
+        """Remove the `value` from the storage.
 
         :param key: key to remove the value
         """

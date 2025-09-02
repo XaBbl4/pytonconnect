@@ -1,7 +1,8 @@
 import asyncio
 from datetime import datetime
-from tonsdk.utils import Address
+
 from nacl.utils import random
+from tonsdk.utils import Address
 
 from pytonconnect import TonConnect
 from pytonconnect.parsers import WalletInfo
@@ -33,7 +34,8 @@ def check_payload(payload: str, wallet_info: WalletInfo):
 async def main():
     proof_payload = generate_payload(600)
 
-    connector = TonConnect(manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json')
+    connector = TonConnect(
+        manifest_url='https://raw.githubusercontent.com/XaBbl4/pytonconnect/main/pytonconnect-manifest.json')
 
     def status_changed(wallet_info):
         print('wallet_info:', wallet_info)
@@ -49,7 +51,7 @@ async def main():
 
     wallets_list = connector.get_wallets()
     print('wallets_list:', wallets_list)
-    
+
     generated_url = await connector.connect(wallets_list[0], {
         'ton_proof': proof_payload
     })

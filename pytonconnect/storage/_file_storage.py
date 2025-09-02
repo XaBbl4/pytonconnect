@@ -1,4 +1,6 @@
 import json
+from contextlib import suppress
+from pathlib import Path
 
 from ._interface import IStorage
 
@@ -6,27 +8,22 @@ from ._interface import IStorage
 class FileStorage(IStorage):
 
     _cache: dict
-    _file_path: str
+    _file_path: Path
 
     def __init__(self, file_path: str, use_cache=True):
-        self._file_path = file_path
+        self._file_path = Path(file_path)
         if use_cache:
             self._cache = {}
-            try:
-                with open(self._file_path, 'r') as f:
-                    self._cache = json.loads(f.read())
-            except Exception:
-                pass
+            with suppress(Exception):
+                self._cache = json.loads(self._file_path.read_text())
         else:
             self._cache = None
 
     def _read_from_file(self):
-        with open(self._file_path, 'r') as f:
-            return json.loads(f.read())
+        return json.loads(self._file_path.read_text())
 
     def _write_to_file(self, d: dict):
-        with open(self._file_path, 'w') as f:
-            f.write(json.dumps(d))
+        self._file_path.write_text(json.dumps(d))
 
     async def set_item(self, key: str, value: str):
         data = self._read_from_file() if self._cache is None else self._cache

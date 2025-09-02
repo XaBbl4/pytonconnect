@@ -5,7 +5,6 @@ import httpx
 from pytonconnect.exceptions import FetchWalletsError
 from pytonconnect.logger import _LOGGER
 
-
 FALLBACK_WALLETS_LIST = [
     {
         "app_name": "telegram-wallet",
@@ -16,10 +15,10 @@ FALLBACK_WALLETS_LIST = [
         "bridge": [
             {
                 "type": "sse",
-                "url": "https://bridge.tonapi.io/bridge"
-            }
+                "url": "https://bridge.tonapi.io/bridge",
+            },
         ],
-        "platforms": ["ios", "android", "macos", "windows", "linux"]
+        "platforms": ["ios", "android", "macos", "windows", "linux"],
     },
     {
         "name": "Tonkeeper",
@@ -30,13 +29,13 @@ FALLBACK_WALLETS_LIST = [
         "bridge": [
             {
                 "type": "sse",
-                "url": "https://bridge.tonapi.io/bridge"
+                "url": "https://bridge.tonapi.io/bridge",
             },
             {
                 "type": "js",
-                "key": "tonkeeper"
-            }
-        ]
+                "key": "tonkeeper",
+            },
+        ],
     },
     {
         "name": "Tonhub",
@@ -46,14 +45,14 @@ FALLBACK_WALLETS_LIST = [
         "bridge": [
             {
                 "type": "js",
-                "key": "tonhub"
+                "key": "tonhub",
             },
             {
                 "type": "sse",
-                "url": "https://connect.tonhubapi.com/tonconnect"
-            }
-        ]
-    }
+                "url": "https://connect.tonhubapi.com/tonconnect",
+            },
+        ],
+    },
 ]
 
 
@@ -122,7 +121,7 @@ class WalletsListManager:
             'name': wallet['name'],
             'image': wallet['image'],
             'about_url': wallet['about_url'],
-            'app_name': wallet.get('app_name')
+            'app_name': wallet.get('app_name'),
         }
 
         for bridge in wallet['bridge']:
@@ -144,5 +143,6 @@ class WalletsListManager:
 
 
 if __name__ == '__main__':
+    import logging
     wallets_list = WalletsListManager()
-    print('Supported list of wallets:', wallets_list.get_wallets())
+    logging.debug(f'Supported list of wallets: {wallets_list.get_wallets()}')

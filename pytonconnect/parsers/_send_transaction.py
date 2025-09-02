@@ -1,10 +1,12 @@
 import json
-
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Optional
 
-from pytonconnect.exceptions import TonConnectError, UnknownError, BadRequestError, UnknownAppError, UserRejectsError
+from pytonconnect.exceptions import (BadRequestError, TonConnectError,
+                                     UnknownAppError, UnknownError,
+                                     UserRejectsError)
+
 from ._rpc_parser import RpcParser
 
 
@@ -50,8 +52,8 @@ class TransactionMessage():
             address=d.get('address'),
             amount=d.get('amount'),
             send_mode=d.get('send_mode', 3),
-            payload=d.get('payload', None),
-            state_init=d.get('state_init', None),
+            payload=d.get('payload'),
+            state_init=d.get('state_init'),
         )
 
 
@@ -60,20 +62,20 @@ class SendTransactionParser(RpcParser):
     def convert_to_rpc_request(request: dict) -> dict:
         return {
             'method': 'sendTransaction',
-            'params': [json.dumps(request)]
+            'params': [json.dumps(request)],
         }
 
     def convert_from_rpc_response(rpc_response: dict) -> dict:
         return {
-            'boc': rpc_response['result']
+            'boc': rpc_response['result'],
         }
 
     def parse_and_throw_error(response: dict) -> None:
         error_constructor: TonConnectError = UnknownError
 
-        code = response.get('error', {}).get('code', None)
+        code = response.get('error', {}).get('code')
         if code is not None and code in SEND_TRANSACTION_ERRORS:
             error_constructor = SEND_TRANSACTION_ERRORS[code]
 
-        message = response.get('error', {}).get('message', None)
+        message = response.get('error', {}).get('message')
         raise error_constructor(message)

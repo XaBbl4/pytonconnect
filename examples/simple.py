@@ -1,7 +1,6 @@
 import asyncio
 from datetime import datetime
 
-
 from pytonconnect import TonConnect
 from pytonconnect.exceptions import UserRejectsError
 
@@ -22,7 +21,7 @@ async def main():
 
     wallets_list = connector.get_wallets()
     print('wallets_list:', wallets_list)
-    
+
     generated_url = await connector.connect(wallets_list[0])
     print('generated_url:', generated_url)
 

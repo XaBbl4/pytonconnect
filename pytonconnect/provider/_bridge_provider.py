@@ -7,10 +7,10 @@ from pytonconnect.exceptions import TonConnectError
 from pytonconnect.logger import _LOGGER
 from pytonconnect.storage import IStorage
 
-from ._provider import BaseProvider
 from ._bridge_gateway import BridgeGateway
 from ._bridge_session import BridgeSession
 from ._bridge_storage import BridgeProviderStorage
+from ._provider import BaseProvider
 
 
 class BridgeProvider(BaseProvider):
@@ -27,7 +27,7 @@ class BridgeProvider(BaseProvider):
     _listeners: list
     _api_tokens: dict[str, str]
 
-    def __init__(self, storage: IStorage, wallet: dict = None, api_tokens: dict[str, str] = {}):
+    def __init__(self, storage: IStorage, wallet: dict = None, api_tokens: dict[str, str] = None):
         self._wallet = wallet
 
         self._storage = BridgeProviderStorage(storage)
@@ -91,7 +91,7 @@ class BridgeProvider(BaseProvider):
 
         def on_request_sent(request_future: asyncio.Future):
             asyncio.create_task(self._remove_session()) \
-                    .add_done_callback(lambda x: resolve.set_result(True) if not resolve.done() else None)
+                .add_done_callback(lambda x: resolve.set_result(True) if not resolve.done() else None)
             request_future.set_result(None)
 
         try:
@@ -119,18 +119,18 @@ class BridgeProvider(BaseProvider):
         if not self._gateway or not self._session or not self._session.wallet_public_key:
             raise TonConnectError('Trying to send bridge request without session.')
 
-        id = request['id'] = await self._storage.increaseNextRpcRequestId()
+        req_id = request['id'] = await self._storage.increaseNextRpcRequestId()
         _LOGGER.debug(f'Provider send http-bridge request: {request}')
 
         encoded_request = self._session.session_crypto.encrypt(
             json.dumps(request),
-            self._session.wallet_public_key
+            self._session.wallet_public_key,
         )
 
         loop = asyncio.get_running_loop()
         resolve = loop.create_future()
 
-        self._pending_requests[id] = resolve
+        self._pending_requests[req_id] = resolve
 
         await self._gateway.send(encoded_request, self._session.wallet_public_key, request['method'])
 
@@ -144,35 +144,41 @@ class BridgeProvider(BaseProvider):
 
     async def _gateway_listener(self, bridge_incoming_message):
         wallet_message = json.loads(
-            self._session.session_crypto.decrypt(bridge_incoming_message['message'], bridge_incoming_message['from'])
+            self._session.session_crypto.decrypt(bridge_incoming_message['message'], bridge_incoming_message['from']),
         )
 
         _LOGGER.debug(f'Wallet message received: {wallet_message}')
 
         if 'event' not in wallet_message:
             if 'id' in wallet_message:
-                id = wallet_message['id']
-                if id not in self._pending_requests:
-                    _LOGGER.debug(f"Response id {id} doesn't match any request's id")
+                event_id = wallet_message['id']
+                if event_id not in self._pending_requests:
+                    _LOGGER.debug(
+                        f"Response id {event_id} doesn't match any request's id"
+                        f"\nPending: {self._pending_requests}")
                     return
 
-                if self._pending_requests[id] and not self._pending_requests[id].done():
-                    self._pending_requests[id].set_result(wallet_message)
-                    del self._pending_requests[id]
+                _LOGGER.debug(f'Set result for pending request id {event_id} -> {self._pending_requests[event_id]}')
+                if self._pending_requests[event_id] and not self._pending_requests[event_id].done():
+                    self._pending_requests[event_id].set_result(wallet_message)
+                    del self._pending_requests[event_id]
+                elif self._pending_requests[event_id]:
+                    _LOGGER.debug(
+                        f'Future {event_id} error -> state {self._pending_requests[event_id]._state}, done {self._pending_requests[event_id].done()}, cancelled {self._pending_requests[event_id].cancelled()}')
 
             return
 
         if 'id' in wallet_message:
-            id = int(wallet_message['id'])
+            event_id = int(wallet_message['id'])
             last_id = await self._storage.getLastWalletEventId()
 
-            if last_id and id <= last_id:
+            if last_id and event_id <= last_id:
                 _LOGGER.error(
-                    f'Received event id (={id}) must be greater than stored last wallet event id (={last_id})')
+                    f'Received event id (={event_id}) must be greater than stored last wallet event id (={last_id})')
                 return
 
             if 'event' in wallet_message and wallet_message['event'] != 'connect':
-                await self._storage.setLastWalletEventId(id)
+                await self._storage.setLastWalletEventId(event_id)
 
         # self.listeners might be modified in the event handler
         listeners = self._listeners.copy()
@@ -196,7 +202,7 @@ class BridgeProvider(BaseProvider):
             'session': self._session.get_dict(),
             'last_wallet_event_id': connect_event['id'] if 'id' in connect_event else None,
             'connect_event': connect_event,
-            'next_rpc_request_id': 0
+            'next_rpc_request_id': 0,
         }
 
         await self._storage.setConnection(connection)

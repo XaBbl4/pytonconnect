@@ -1,4 +1,5 @@
 import json
+
 from pytonconnect.crypto import SessionCrypto
 
 
@@ -10,7 +11,7 @@ class BridgeSession:
 
     def __init__(self, stored: dict = None):
         self.session_crypto = SessionCrypto(stored['session_private_key']) \
-                              if stored and 'session_private_key' in stored else None
+            if stored and 'session_private_key' in stored else None
         self.wallet_public_key = stored['wallet_public_key'] if stored and 'wallet_public_key' in stored else None
         self.bridge_url = stored['bridge_url'] if stored and 'bridge_url' in stored else None
 
@@ -21,5 +22,5 @@ class BridgeSession:
         return {
             'session_private_key': self.session_crypto.key_pair.encode().hex(),
             'wallet_public_key': self.wallet_public_key,
-            'bridge_url': self.bridge_url
+            'bridge_url': self.bridge_url,
         }

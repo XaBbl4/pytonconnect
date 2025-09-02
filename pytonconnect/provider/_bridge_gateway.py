@@ -17,7 +17,7 @@ class BridgeGateway:
     POST_PATH = 'message'
     HEARTBEAT_MSG = 'heartbeat'
     DEFAULT_TTL = 300
-    DEFAULT_TIMEOUT = 10 # default request timeout
+    DEFAULT_TIMEOUT = 10  # default request timeout
 
     _handle_listen: asyncio.Task
     _event_source: EventSource
@@ -30,7 +30,7 @@ class BridgeGateway:
     _errors_listener: any
     _api_token: str
 
-    def __init__(self, storage: BridgeProviderStorage, bridge_url: str, session_id: str, listener, errors_listener, api_tokens: dict[str, str] = {}):
+    def __init__(self, storage: BridgeProviderStorage, bridge_url: str, session_id: str, listener, errors_listener, api_tokens: dict[str, str] = None):
 
         self._handle_listen = None
         self._event_source = None
@@ -43,12 +43,16 @@ class BridgeGateway:
         self._errors_listener = errors_listener
 
         self._api_token = None
-        for api_name, api_token in api_tokens.items():
-            if api_name in self._bridge_url:
-                self._api_token = api_token
-                break
+        if api_tokens:
+            for api_name, api_token in api_tokens.items():
+                if api_name in self._bridge_url:
+                    self._api_token = api_token
+                    break
 
-    async def listen_event_source(self, resolve: asyncio.Future, url: str, timeout=None):
+    async def listen_event_source(self,
+                                  resolve: asyncio.Future,
+                                  url: str,
+                                  timeout=None):
         try:
             async with ClientSession() as client:
                 headers = {}
@@ -78,8 +82,10 @@ class BridgeGateway:
             elif self._errors_listener:
                 self._errors_listener()
 
-        if not resolve.done():
-            resolve.set_result(False)
+        finally:
+            if not resolve.done():
+                _LOGGER.warning(f'=== listen_event === set resolve False')
+                resolve.set_result(False)
 
     async def register_session(self, timeout=DEFAULT_TIMEOUT) -> bool:
         if self._is_closed:

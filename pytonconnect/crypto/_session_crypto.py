@@ -1,7 +1,8 @@
 from base64 import b64decode, b64encode
-from nacl.utils import random
-from nacl.public import PrivateKey, PublicKey, Box
+
 from nacl.encoding import HexEncoder
+from nacl.public import Box, PrivateKey, PublicKey
+from nacl.utils import random
 
 
 class SessionCrypto:

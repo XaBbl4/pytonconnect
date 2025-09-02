@@ -1,22 +1,16 @@
 import asyncio
 import typing
 
-from pytonconnect.exceptions import (
-    ManifestContentError,
-    ManifestNotFoundError,
-    WalletAlreadyConnectedError,
-    WalletNotConnectedError,
-    WalletNotSupportFeatureError,
-)
+from pytonconnect.exceptions import (ManifestContentError,
+                                     ManifestNotFoundError,
+                                     WalletAlreadyConnectedError,
+                                     WalletNotConnectedError,
+                                     WalletNotSupportFeatureError)
 from pytonconnect.logger import _LOGGER
-from pytonconnect.parsers import (
-    ConnectEventParser,
-    TransactionMessage,
-    SendTransactionParser,
-    WalletInfo,
-)
+from pytonconnect.parsers import (ConnectEventParser, SendTransactionParser,
+                                  TransactionMessage, WalletInfo)
 from pytonconnect.provider import BridgeProvider
-from pytonconnect.storage import IStorage, DefaultStorage
+from pytonconnect.storage import DefaultStorage, IStorage
 
 from ._wallets_list_manager import WalletsListManager
 
@@ -60,10 +54,10 @@ class TonConnect:
     def __init__(
         self,
         manifest_url: str,
-        storage: IStorage = DefaultStorage(),
+        storage: IStorage = None,
         wallets_list_source: str = None,
         wallets_list_cache_ttl: int = None,
-        api_tokens: dict[str, str] = {},
+        api_tokens: dict[str, str] = None,
     ):
         if wallets_list_source is not None or wallets_list_cache_ttl is not None:
             self._wallets_list = WalletsListManager(
@@ -72,7 +66,7 @@ class TonConnect:
 
         self._provider = None
         self._manifest_url = manifest_url
-        self._storage = storage
+        self._storage = storage or DefaultStorage()
         self._api_tokens = api_tokens
 
         self._wallet = None
@@ -85,7 +79,7 @@ class TonConnect:
         return TonConnect._wallets_list.get_wallets() if self is None else self._wallets_list.get_wallets()
 
     def on_status_change(self, callback, errors_handler=None):
-        """Allows to subscribe to connection status changes and handle connection errors.
+        """Allow to subscribe to connection status changes and handle connection errors.
 
         :param callback: will be called after connections status changes with actual wallet or None
         :param errors_handler: will be called with some instance of TonConnectError when connect error is received
@@ -104,7 +98,7 @@ class TonConnect:
         return unsubscribe
 
     async def connect(self, wallet, request=None):
-        """Generates universal link for an external wallet and subscribes to the wallet's bridge,
+        """Generate universal link for an external wallet and subscribes to the wallet's bridge,
         or sends connect request to the injected wallet.
 
         :param wallet: wallet's bridge url and universal link for an external wallet.
@@ -140,7 +134,7 @@ class TonConnect:
         return await self._provider.restore_connection(auto_listen)
 
     async def send_transaction(self, transaction: dict) -> dict:
-        """Asks connected wallet to sign and send the transaction.
+        """Ask connected wallet to sign and send the transaction.
 
         :param transaction: transaction to send.
         :return: signed transaction boc that allows you to find the transaction in the blockchain.
@@ -152,7 +146,7 @@ class TonConnect:
         messages: typing.Union[list[typing.Union[TransactionMessage, dict]],
                                TransactionMessage, dict] = transaction.get('messages', [])
         if not isinstance(messages, list):
-            messages = [messages,]
+            messages = [messages]
 
         options = {'required_messages_number': len(messages)}
         self._check_send_transaction_support(self._wallet.device.features, options)
@@ -272,17 +266,17 @@ class TonConnect:
     def _create_connect_request(self, request):
         items = [
             {
-                'name': 'ton_addr'
-            }
+                'name': 'ton_addr',
+            },
         ]
 
         if isinstance(request, dict) and 'ton_proof' in request:
             items.append({
                 'name': 'ton_proof',
-                'payload': request['ton_proof']
+                'payload': request['ton_proof'],
             })
 
         return {
             'manifestUrl': self._manifest_url,
-            'items': items
+            'items': items,
         }

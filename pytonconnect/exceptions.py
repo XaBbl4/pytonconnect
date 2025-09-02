@@ -4,10 +4,10 @@ class TonConnectError(Exception):
     info = None
 
     def __init__(self, message=None):
-        super(TonConnectError, self).__init__(f'{self.prefix}'
-                                              + (f': {self.info}' if self.info else '')
-                                              + (f' {message}' if message is not None else '')
-                                              )
+        super(TonConnectError, self).__init__(
+            f'{self.prefix}'
+            + (f': {self.info}' if self.info else '')
+            + (f' {message}' if message is not None else ''))
 
 
 class WalletAlreadyConnectedError(TonConnectError):

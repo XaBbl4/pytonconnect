@@ -1,20 +1,15 @@
 import hashlib
-
 from base64 import b64decode
 from enum import IntEnum
-from nacl.signing import VerifyKey
-from nacl.encoding import HexEncoder
 from typing import List
 
-from pytonconnect.exceptions import (
-    BadRequestError,
-    ManifestContentError,
-    ManifestNotFoundError,
-    TonConnectError,
-    UnknownAppError,
-    UnknownError,
-    UserRejectsError,
-)
+from nacl.encoding import HexEncoder
+from nacl.signing import VerifyKey
+
+from pytonconnect.exceptions import (BadRequestError, ManifestContentError,
+                                     ManifestNotFoundError, TonConnectError,
+                                     UnknownAppError, UnknownError,
+                                     UserRejectsError)
 from pytonconnect.logger import _LOGGER
 
 
@@ -88,7 +83,7 @@ class Account():
         account.address = ton_addr['address']
         account.chain = ton_addr['network']
         account.wallet_state_init = ton_addr['walletStateInit']
-        account.public_key = ton_addr.get('publicKey', None)
+        account.public_key = ton_addr.get('publicKey')
         return account
 
 
@@ -101,7 +96,7 @@ class TonProof():
     signature: bytes
 
     def from_dict(reply: dict):
-        proof = reply.get('proof', None)
+        proof = reply.get('proof')
         if proof is None:
             raise TonConnectError('proof not contains in ton_proof')
 
@@ -197,9 +192,9 @@ class ConnectEventParser():
     def parse_error(payload: dict) -> TonConnectError:
         error_constructor: TonConnectError = UnknownError
 
-        code = payload.get('error', {}).get('code', None)
+        code = payload.get('error', {}).get('code')
         if code is not None and code in CONNECT_EVENT_ERRORS:
             error_constructor = CONNECT_EVENT_ERRORS[code]
 
-        message = payload.get('error', {}).get('message', None)
+        message = payload.get('error', {}).get('message')
         return error_constructor(message)
