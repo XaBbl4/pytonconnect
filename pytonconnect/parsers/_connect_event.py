@@ -1,16 +1,13 @@
-import hashlib
 from base64 import b64decode
 from enum import IntEnum
 from typing import List
 
-from nacl.encoding import HexEncoder
-from nacl.signing import VerifyKey
-
-from pytonconnect.exceptions import (BadRequestError, ManifestContentError,
+from pytonconnect.exceptions import (BadRequestError,
+                                     CheckProofIsDeprecatedError,
+                                     ManifestContentError,
                                      ManifestNotFoundError, TonConnectError,
                                      UnknownAppError, UnknownError,
                                      UserRejectsError)
-from pytonconnect.logger import _LOGGER
 
 
 class CONNECT_EVENT_ERROR_CODES(IntEnum):
@@ -133,38 +130,7 @@ class WalletInfo():
         self.ton_proof = None
 
     def check_proof(self, src_payload: str = None) -> bool:
-        if self.ton_proof is None:
-            return False
-
-        wc, whash = self.account.address.split(':', maxsplit=2)
-
-        message = bytearray()
-        message.extend('ton-proof-item-v2/'.encode())
-        message.extend(int(wc, 10).to_bytes(4, 'little'))
-        message.extend(bytes.fromhex(whash))
-        message.extend(self.ton_proof.domain_len.to_bytes(4, 'little'))
-        message.extend(self.ton_proof.domain_val.encode())
-        message.extend(self.ton_proof.timestamp.to_bytes(8, 'little'))
-        if src_payload is not None:
-            message.extend(src_payload.encode())
-        else:
-            message.extend(self.ton_proof.payload.encode())
-
-        signature_message = bytearray()
-        signature_message.extend(bytes.fromhex('ffff'))
-        signature_message.extend('ton-connect'.encode())
-        signature_message.extend(hashlib.sha256(message).digest())
-
-        try:
-            verify_key = VerifyKey(self.account.public_key, HexEncoder)
-            verify_key.verify(hashlib.sha256(signature_message).digest(), self.ton_proof.signature)
-            _LOGGER.debug('PROOF IS OK')
-            return True
-
-        except Exception:
-            _LOGGER.exception('PROOF ERROR')
-
-        return False
+        raise CheckProofIsDeprecatedError()
 
 
 class ConnectEventParser():

@@ -4,9 +4,15 @@
 
 Python SDK for TON Connect 2.0
 
+⚠️ The library has not been developed for a long time.
+
 Analogue of the [@tonconnect/sdk](https://github.com/ton-connect/sdk/tree/main/packages/sdk) library.
 
 Use it to connect your app to TON wallets via TonConnect protocol. You can find more details and the protocol specification in the [docs](https://github.com/ton-connect/docs).
+
+# Vulnerable
+
+### 🛑 A vulnerability was found in the `check_proof` function. If you use this functionality in your project, consider switching to another library!
 
 # Installation
 

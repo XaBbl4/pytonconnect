@@ -52,3 +52,7 @@ class ManifestNotFoundError(TonConnectError):
 class ManifestContentError(TonConnectError):
     info = ('Passed `tonconnect-manifest.json` contains errors. Check format of your manifest. '
             'See more https://github.com/ton-connect/docs/blob/main/requests-responses.md#app-manifest')
+
+
+class CheckProofIsDeprecatedError(TonConnectError):
+    info = 'check_proof is vulnerable. Please use alternative library.'
